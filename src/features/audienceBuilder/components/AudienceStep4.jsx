@@ -149,7 +149,7 @@ const mockLinearSpots = [
 ];
 
 const AudienceStep4 = () => {
-  // Force Vercel deployment update
+  // Trigger deployment with public repo
   const ctx = useAudienceBuilder();
   const theme = useTheme();
   const minAudience = 100000;
@@ -435,14 +435,14 @@ const AudienceStep4 = () => {
                 {/* Locations Tab: Add Layer, Type dropdown, TV region dropdown */}
                 {tab === 'GEO' && (
                   <Box sx={{ width: '90%', mx: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<AddIcon />}
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
                       onClick={handleAddLayerClick}
                       sx={{ my: 2, textTransform: 'none', fontWeight: 600, borderRadius: 2, borderColor: '#1976d2', color: '#1976d2', '&:hover': { borderColor: '#1976d2', background: '#e3f0fa' }, width: '100%' }}
-                    >
-                      Add Layer
-                    </Button>
+            >
+              Add Layer
+            </Button>
                     {layers.filter(layer => layer.type).map((layer, idx) => (
                       <Card key={idx} sx={{ display: 'flex', alignItems: 'center', p: 1, boxShadow: 'none', borderLeft: 0, borderRight: 0, borderTop: 0, borderBottom: '1px solid #e0e0e0', borderRadius: 0, width: '100%', minHeight: 48, position: 'relative' }}>
                         <Box sx={{ flex: 1, textAlign: 'left' }}>
@@ -483,31 +483,31 @@ const AudienceStep4 = () => {
                   {tab === 'POI' ? (
                     <>
                       <FormControl fullWidth size="small" sx={{ mb: 2, bgcolor: 'white', borderRadius: 1 }}>
-                        <InputLabel>Category</InputLabel>
-                        <Select
-                          value={category}
-                          label="Category"
-                          onChange={e => setCategory(e.target.value)}
-                        >
-                          {CATEGORY_OPTIONS.map(opt => (
-                            <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    value={category}
+                    label="Category"
+                    onChange={e => setCategory(e.target.value)}
+                  >
+                    {CATEGORY_OPTIONS.map(opt => (
+                      <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                       <FormControl fullWidth size="small" sx={{ mb: 2, bgcolor: 'white', borderRadius: 1 }}>
-                        <InputLabel>Name</InputLabel>
-                        <Select
-                          value={name}
-                          label="Name"
-                          onChange={e => setName(e.target.value)}
-                        >
-                          {NAME_OPTIONS.map(opt => (
-                            <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Button
-                        variant="contained"
+                  <InputLabel>Name</InputLabel>
+                  <Select
+                    value={name}
+                    label="Name"
+                    onChange={e => setName(e.target.value)}
+                  >
+                    {NAME_OPTIONS.map(opt => (
+                      <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
                         onClick={() => {
                           handleAddLayer();
                           handlePoiMenuClose();
@@ -515,7 +515,7 @@ const AudienceStep4 = () => {
                         sx={{ width: '100%', textTransform: 'none' }}
                       >
                         Add
-                      </Button>
+                </Button>
                     </>
                   ) : (
                     <>
@@ -533,16 +533,16 @@ const AudienceStep4 = () => {
                       {locationType === 'TV region' && (
                         <FormControl fullWidth size="small" sx={{ mb: 2, bgcolor: 'white', borderRadius: 1 }}>
                           <InputLabel>TV Region</InputLabel>
-                          <Select
+              <Select
                             value={selectedRegion}
                             label="TV Region"
                             onChange={e => setSelectedRegion(e.target.value)}
                           >
                             {TV_REGIONS.map(region => (
                               <MenuItem key={region} value={region}>{region}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                ))}
+              </Select>
+            </FormControl>
                       )}
                       <Button
                         variant="contained"
@@ -560,14 +560,14 @@ const AudienceStep4 = () => {
                 {/* Battlegrounds Tab: List battlegrounds, no popup */}
                 {tab === 'BATTLEGROUND' && (
                   <Box sx={{ width: '90%', mx: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Button
-                      variant="outlined"
+                <Button
+                  variant="outlined"
                       startIcon={<AddIcon />}
-                      onClick={() => setBattlegroundDialogOpen(true)}
+                  onClick={() => setBattlegroundDialogOpen(true)}
                       sx={{ my: 2, textTransform: 'none', fontWeight: 600, borderRadius: 2, borderColor: '#1976d2', color: '#1976d2', '&:hover': { borderColor: '#1976d2', background: '#e3f0fa' }, width: '100%' }}
-                    >
-                      Define Battleground
-                    </Button>
+                >
+                  Define Battleground
+                </Button>
                     {/* Only show the card if battlegroundCard is set */}
                     {battlegroundCard && (
                       <Card sx={{ boxShadow: 'none', borderTop: '1px solid #e0e0e0', borderBottom: '1px solid #e0e0e0', borderLeft: 0, borderRight: 0, borderRadius: 0, width: '100%', mt: 2, p: 2, display: 'flex', flexDirection: 'row', alignItems: 'flex-start', position: 'relative' }}>
@@ -717,22 +717,22 @@ const AudienceStep4 = () => {
                 height={96}
                 viewBox="0 0 96 96"
                 style={{
-                  position: 'absolute',
+                          position: 'absolute',
                   left: `${hex.x}%`,
                   top: `${hex.y}%`,
                   transform: 'translate(-50%, -50%)',
-                  zIndex: 3,
+                          zIndex: 3,
                   pointerEvents: 'none'
-                }}
-              >
-                <polygon
+                        }}
+                      >
+                          <polygon
                   points="48,12 84,36 84,72 48,96 12,72 12,36"
                   fill="#E53935"
                   stroke="#B71C1C"
                   strokeWidth={4}
                   opacity={0.45}
-                />
-              </svg>
+                          />
+                        </svg>
             ))}
             {/* Audience size box top right */}
             <Box sx={{ position: 'absolute', right: 20, top: 12, bgcolor: '#fff', border: '1px solid #bdbdbd', borderRadius: 1, p: 1.5, minWidth: 200, boxShadow: 1, zIndex: 10 }}>
@@ -803,7 +803,7 @@ const AudienceStep4 = () => {
                       />
                     </Card>
                   </>}
-                </Box>
+                      </Box>
               </Menu>
             </Box>
           </Box>
@@ -989,8 +989,8 @@ const AudienceStep4 = () => {
                 label="Only include zones with at least one client store"
                 sx={{ ml: 1 }}
               />
-            </Box>
-          </Box>
+        </Box>
+      </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setBattlegroundDialogOpen(false)}>Cancel</Button>

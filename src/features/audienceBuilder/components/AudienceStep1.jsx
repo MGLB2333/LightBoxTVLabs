@@ -24,7 +24,7 @@ const AudienceStep1 = () => {
           <GroupIcon sx={{ color: 'primary.main', mr: 1 }} />
           <Typography variant="h6" gutterBottom fontWeight={700}>Audience Details</Typography>
         </Box>
-        <img src="/copilot.png" alt="Copilot" style={{ height: 36, marginLeft: 16 }} />
+        <img src="/copilot.png" alt="Copilot" style={{ height: 36, marginLeft: 16, display: 'block' }} />
       </Box>
       <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2, fontSize: 13, width: '100%' }}>
         This section captures the core details of your audience and campaign goals.

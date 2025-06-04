@@ -12,11 +12,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* New deployment test */
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   width: 100%;
+  background-color: #ffffff;
 }
 
 #root {

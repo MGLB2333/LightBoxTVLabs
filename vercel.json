@@ -4,6 +4,15 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "npm install",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

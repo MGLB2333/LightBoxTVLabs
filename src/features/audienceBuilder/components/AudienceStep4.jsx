@@ -69,14 +69,63 @@ const LayerCard = ({ category, name, color, stores, onRemove }) => (
   </Card>
 );
 
-const getRandomPins = (count) => {
-  // Generate random positions for pins (as percentages)
-  // Only in the middle 40%: x from 30% to 70%, y from 15% to 85%
-  return Array.from({ length: count }, () => ({
-    x: Math.random() * 40 + 30, // 30% to 70%
-    y: Math.random() * 70 + 15, // 15% to 85%
-  }));
-};
+const GRID_ROWS = 20;
+const GRID_COLS = 20;
+const ukLandCells = [
+  // Row 1
+  false, false, false, false, false, false, false, false, false, false, false, true,  false, false, false, false, false, false, false, false,
+  // Row 2
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  // Row 3
+  false, false, false, false, false, false, false, false, false, false, false, true,  false, false, false, false, false, false, false, false,
+  // Row 4
+  false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  false, false, false, false, false, false, false,
+  // Row 5
+  false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  false, false, false, false, false, false,
+  // Row 6
+  false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  false, false, false, false, false, false, false,
+  // Row 7
+  false, false, false, false, false, false, false, false, true,  true,  false, true,  true,  true,  false, false, false, false, false, false,
+  // Row 8
+  false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  false, false, false, false, false, false,
+  // Row 9
+  false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  true,  false, true,  false, false, false,
+  // Row 10
+  false, false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  true,  true,  true,  false, false,
+  // Row 11
+  false, false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  true,  false, false, false, false,
+  // Row 12
+  false, false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  true,  true,  true,  false, false, false,
+  // Row 13
+  false, false, false, false, false, false, true,  true,  true,  true,  false, true,  true,  true,  true,  true,  true,  false, false, false,
+  // Row 14
+  false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  true,  true,  true,  true,  false, false, false, false,
+  // Row 15
+  false, false, false, false, false, false, false, true,  true,  true,  true,  true,  true,  true,  true,  true,  true,  false, false, false,
+  // Row 16
+  false, false, false, false, false, false, false, false, true,  false, true,  true,  true,  true,  true,  true,  true,  false, false, false,
+  // Row 17
+  false, false, false, false, false, false, false, true,  false, false, true,  true,  true,  true,  true,  false, false, false, false, false,
+  // Row 18
+  false, false, false, false, false, false, false, true,  false, false, true,  false, false, false, false, false, false, false, false, false,
+  // Row 19
+  false, false, false, false, true,  true,  false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  // Row 20
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+];
+const landIndices = ukLandCells
+  .map((isLand, idx) => isLand ? idx : null)
+  .filter(idx => idx !== null);
+function getRandomPinGrid() {
+  const cellIdx = landIndices[Math.floor(Math.random() * landIndices.length)];
+  const row = Math.floor(cellIdx / GRID_COLS);
+  const col = cellIdx % GRID_COLS;
+  // Random position within the cell
+  const x = (col + Math.random()) * (100 / GRID_COLS);
+  const y = (row + Math.random()) * (100 / GRID_ROWS);
+  return { x, y };
+}
+const getRandomPins = (count) => Array.from({ length: count }, getRandomPinGrid);
 
 const getRandomHeatmapCenters = (count) => {
   // Generate random positions for heatmap circles (as percentages)
@@ -198,7 +247,16 @@ const AudienceStep4 = () => {
 
   const handleAddLayer = () => {
     const color = PIN_COLORS[layers.filter(l => !l.type).length % PIN_COLORS.length];
-    const stores = getRandomInt(50, 200);
+    const storeCounts = {
+      'Aldi': 570,
+      'Asda': 608,
+      'Lidl': 652,
+      'Morrisons': 662,
+      'Sainsburys': 1299,
+      'Tesco': 2622,
+      'Waitrose': 364
+    };
+    const stores = storeCounts[name] || 100;
     const pins = getRandomPins(stores);
     setLayers([...layers, { category, name, color, stores, pins }]);
     setPoiAnchorEl(null);

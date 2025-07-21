@@ -1,83 +1,175 @@
-/* Force new deployment */
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light;
-  color: #213547;
-  background-color: #f6f6f6;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom loading spinner animation */
+@keyframes spin-slow-reverse {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
-/* New deployment test */
+/* Custom loading bar animation */
+@keyframes loading-bar {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 100%;
+    margin-left: 0%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}
+
+/* Custom slider styling */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #02b3e5;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(2, 179, 229, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(2, 179, 229, 0.4);
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #02b3e5;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(2, 179, 229, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(2, 179, 229, 0.4);
+}
+
+.slider::-webkit-slider-track {
+  background: linear-gradient(to right, #e5e7eb 0%, #02b3e5 50%, #e5e7eb 100%);
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider::-moz-range-track {
+  background: linear-gradient(to right, #e5e7eb 0%, #02b3e5 50%, #e5e7eb 100%);
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider:focus {
+  outline: none;
+}
+
+.slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(2, 179, 229, 0.2);
+}
+
+.slider:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(2, 179, 229, 0.2);
+}
+
 body {
   margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  width: 100%;
-  background-color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
 
-a {
-  font-weight: 500;
-  color: #00B4E7;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #009fe3;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #f9f9f9;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-
-button:hover {
-  border-color: #00B4E7;
-}
-
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+@layer base {
+  h1 {
+    @apply text-lg font-semibold;
   }
 }
-// Wed Jun  4 23:07:36 BST 2025
 
-/* Another trivial change to trigger Vercel deployment */
+@layer components {
+  .subheading {
+    @apply text-base text-gray-500;
+  }
+  .btn {
+    @apply px-[14px] py-1.5 text-[15px] rounded-md font-medium;
+  }
+  .btn-primary {
+    @apply btn text-white;
+    background-color: #02b3e5;
+  }
+  .table {
+    @apply w-full text-sm bg-white rounded-xl;
+  }
+  .table thead tr {
+    @apply border-b bg-gray-50;
+  }
+  .table th {
+    @apply text-left px-4 py-2 font-semibold text-gray-700;
+  }
+  .table td {
+    @apply px-4 py-2;
+  }
+  /* Update all focus and border rings using #00B4E7 or similar to #02b3e5 */
+  input:focus, .btn:focus, .btn-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #02b3e533;
+    border-color: #02b3e5;
+  }
+  
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
 
-/* Commit with correct git user email for Vercel deploy */
+/* Ensure header dropdown appears above Leaflet maps */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-control {
+  z-index: 2 !important;
+}
+
+.leaflet-popup {
+  z-index: 3 !important;
+}
+
+/* Header dropdown should be above everything */
+header {
+  z-index: 9999 !important;
+}
+
+header * {
+  z-index: 9999 !important;
+}

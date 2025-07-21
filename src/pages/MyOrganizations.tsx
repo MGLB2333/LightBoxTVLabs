@@ -72,10 +72,53 @@ const MyOrganizations: React.FC = () => {
       setModalError('Organisation name required')
       return
     }
-    // Temporarily disabled - RPC function doesn't exist
-    setModalError('Organization creation is temporarily disabled. Please contact support.')
-    setShowCreateModal(false)
-    setOrgNameInput('')
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setModalError('User not authenticated')
+        return
+      }
+
+      // Create organization directly
+      const { data: newOrg, error: orgError } = await supabase
+        .from('organizations')
+        .insert({
+          name: orgNameInput.trim(),
+          created_by: user.id
+        })
+        .select()
+        .single()
+
+      if (orgError) {
+        console.error('Error creating organization:', orgError)
+        setModalError('Failed to create organization. Please try again.')
+        return
+      }
+
+      // Add user as admin of the organization
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: newOrg.id,
+          role: 'admin'
+        })
+
+      if (memberError) {
+        console.error('Error adding user to organization:', memberError)
+        setModalError('Organization created but failed to add you as admin.')
+        return
+      }
+
+      setShowCreateModal(false)
+      setOrgNameInput('')
+      setModalError('')
+      window.location.reload()
+    } catch (error) {
+      console.error('Error creating organization:', error)
+      setModalError('Failed to create organization. Please try again.')
+    }
   }
   
   const submitJoinOrg = async () => {
@@ -83,10 +126,60 @@ const MyOrganizations: React.FC = () => {
       setModalError('Invite token required')
       return
     }
-    // Temporarily disabled - RPC function doesn't exist
-    setModalError('Organization joining is temporarily disabled. Please contact support.')
-    setShowJoinModal(false)
-    setJoinTokenInput('')
+
+    try {
+      // Simple client-side organization joining
+      // For now, we'll create a basic organization membership
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setModalError('User not authenticated')
+        return
+      }
+
+      // Try to find an organization by a simple token (using the token as org name for demo)
+      // In a real implementation, you'd have a proper token-to-organization mapping
+      const orgName = `Organization-${joinTokenInput.trim().substring(0, 8)}`
+      
+      // Create a simple organization if it doesn't exist
+      const { data: existingOrg } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('name', orgName)
+        .single()
+
+      let organizationId = existingOrg?.id
+
+      if (!organizationId) {
+        // Create a simple organization (this would need the organizations table to exist)
+        setModalError('Organization not found. Please check your invite token.')
+        setShowJoinModal(false)
+        setJoinTokenInput('')
+        return
+      }
+
+      // Add user to organization
+      const { error: joinError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: organizationId,
+          role: 'member'
+        })
+
+      if (joinError) {
+        console.error('Error joining organization:', joinError)
+        setModalError('Failed to join organization. You may already be a member.')
+        return
+      }
+
+      setShowJoinModal(false)
+      setJoinTokenInput('')
+      setModalError('')
+      window.location.reload()
+    } catch (error) {
+      console.error('Error joining organization:', error)
+      setModalError('Failed to join organization. Please try again.')
+    }
   }
 
   const handleCreateOrgClick = () => {

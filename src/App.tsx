@@ -63,6 +63,7 @@ function App() {
           <Route path="documentation">
             <Route index element={<Documentation />} />
             <Route path=":section" element={<Documentation />} />
+            <Route path=":section/:subsection" element={<Documentation />} />
           </Route>
         </Route>
       </Routes>

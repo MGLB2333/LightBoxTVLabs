@@ -31,23 +31,47 @@ const MyOrganizations: React.FC = () => {
         setLoading(false)
         return
       }
+      
+      // Debug: List all organizations to see what exists
+      const { data: allOrgs, error: allOrgsError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .limit(10)
+      console.log('All organizations in database:', { allOrgs, allOrgsError })
+      
       // Get super admin status
       const { data: userData } = await supabase.from('users').select('is_super_admin').eq('id', user.id).single()
       setIsSuperAdmin(!!userData?.is_super_admin)
-      // Get orgs - now using organization_name from the members table
-      const { data, error } = await supabase
+      // Get orgs - using two queries to get organization details
+      const { data: memberships, error: membershipError } = await supabase
         .from('organization_members')
-        .select('organization_id, organization_name, role')
+        .select('organization_id, role')
         .eq('user_id', user.id)
-      if (error || !data || data.length === 0) {
+      
+      if (membershipError || !memberships || memberships.length === 0) {
         setOrgs([])
         setCurrentOrg(null)
         setLoading(false)
         return
       }
-      const orgsList = data.map((row: any) => ({ 
-        id: row.organization_id, 
-        name: row.organization_name || `Organization-${row.organization_id.substring(0, 8)}` 
+      
+      // Get organization details for each membership
+      const orgIds = memberships.map(m => m.organization_id)
+      const { data: orgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .in('id', orgIds)
+      
+      if (orgError || !orgs) {
+        setOrgs([])
+        setCurrentOrg(null)
+        setLoading(false)
+        return
+      }
+      
+      const orgsList = orgs.map((org: any) => ({ 
+        id: org.id, 
+        name: org.name
       }))
       setOrgs(orgsList)
       setCurrentOrg(orgsList[0])
@@ -98,6 +122,21 @@ const MyOrganizations: React.FC = () => {
         return
       }
 
+      // Add user as admin of the organization
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: newOrg.id,
+          role: 'admin'
+        })
+
+      if (memberError) {
+        console.error('Error adding user to organization:', memberError)
+        setModalError('Organization created but failed to add you as admin. Please contact support.')
+        return
+      }
+
       setShowCreateModal(false)
       setOrgNameInput('')
       setModalError('')
@@ -121,18 +160,42 @@ const MyOrganizations: React.FC = () => {
         return
       }
 
-      // Use the token directly as organization_id
-      const organizationId = joinTokenInput.trim()
-      
-      // Check if organization exists by looking for any members
-      const { data: existingMembers } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('organization_id', organizationId)
-        .limit(1)
+      // Use the token as organization name to find the organization
+      console.log('Looking for organization with name:', joinTokenInput.trim())
+      const { data: existingOrgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('name', joinTokenInput.trim())
 
-      if (!existingMembers || existingMembers.length === 0) {
+      console.log('Organization query result:', { existingOrgs, orgError })
+      
+      if (orgError) {
+        console.error('Organization lookup error:', orgError)
+        setModalError(`Organization lookup failed: ${orgError.message}`)
+        setShowJoinModal(false)
+        setJoinTokenInput('')
+        return
+      }
+      
+      if (!existingOrgs || existingOrgs.length === 0) {
         setModalError('Organization not found. Please check your invite token.')
+        setShowJoinModal(false)
+        setJoinTokenInput('')
+        return
+      }
+      
+      const existingOrg = existingOrgs[0]
+
+      // Check if user is already a member
+      const { data: existingMembership } = await supabase
+        .from('organization_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('organization_id', existingOrg.id)
+        .single()
+
+      if (existingMembership) {
+        setModalError('You are already a member of this organization.')
         setShowJoinModal(false)
         setJoinTokenInput('')
         return
@@ -143,7 +206,7 @@ const MyOrganizations: React.FC = () => {
         .from('organization_members')
         .insert({
           user_id: user.id,
-          organization_id: organizationId,
+          organization_id: existingOrg.id,
           role: 'member'
         })
 
@@ -173,11 +236,9 @@ const MyOrganizations: React.FC = () => {
   const handleInviteMembers = async () => {
     if (!currentOrg) return
     
-    // Generate a simple invite token client-side
-    const inviteToken = crypto.randomUUID()
+    // Use organization name as the invite token
+    const inviteToken = currentOrg.name
     
-    // Store the token in a temporary table or use it directly
-    // For now, we'll just use it directly
     setInviteToken(inviteToken)
     setShowInviteModal(true)
   }

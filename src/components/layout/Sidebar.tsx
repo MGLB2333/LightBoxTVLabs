@@ -44,25 +44,40 @@ const Sidebar: React.FC = () => {
         setLoading(false)
         return
       }
-      const { data, error } = await supabase
+      // First get the user's organization memberships
+      const { data: memberships, error: membershipError } = await supabase
         .from('organization_members')
-        .select('organization:organization_id(id, name), organization_id')
+        .select('organization_id')
         .eq('user_id', user.id)
-      if (error || !data || data.length === 0) {
+      
+      if (membershipError || !memberships || memberships.length === 0) {
         setOrgs([])
         setCurrentOrg(null)
         setLoading(false)
         return
       }
+      
+      // Then get the organization details for each membership
+      const orgIds = memberships.map(m => m.organization_id)
+      const { data: orgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .in('id', orgIds)
+      
+      if (orgError || !orgs) {
+        setOrgs([])
+        setCurrentOrg(null)
+        setLoading(false)
+        return
+      }
+      
       // Get member counts for each org
-      const orgsWithCounts = await Promise.all(data.map(async (row: any) => {
-        const orgId = row.organization_id
-        const orgName = row.organization?.name || 'Unknown Org'
+      const orgsWithCounts = await Promise.all(orgs.map(async (org: any) => {
         const { count } = await supabase
           .from('organization_members')
           .select('*', { count: 'exact', head: true })
-          .eq('organization_id', orgId)
-        return { id: orgId, name: orgName, members: count || 1 }
+          .eq('organization_id', org.id)
+        return { id: org.id, name: org.name, members: count || 1 }
       }))
       setOrgs(orgsWithCounts)
       // Try to restore selected org from localStorage
@@ -108,6 +123,22 @@ const Sidebar: React.FC = () => {
         return
       }
 
+      // Add user as admin of the organization
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: newOrg.id,
+          role: 'admin'
+        })
+
+      if (memberError) {
+        console.error('Error adding user to organization:', memberError)
+        alert('Organization created but failed to add you as admin. Please contact support.')
+        setLoading(false)
+        return
+      }
+
       // Refetch orgs
       window.location.reload()
     } catch (error) {
@@ -130,18 +161,37 @@ const Sidebar: React.FC = () => {
         return
       }
 
-      // Use the token directly as organization_id
-      const organizationId = token
-      
-      // Check if organization exists
-      const { data: existingMembers } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('organization_id', organizationId)
+      // Use the token as organization name to find the organization
+      const { data: existingOrgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('name', token)
         .limit(1)
 
-      if (!existingMembers || existingMembers.length === 0) {
+      if (orgError) {
+        alert(`Organization lookup failed: ${orgError.message}`)
+        setLoading(false)
+        return
+      }
+      
+      if (!existingOrgs || existingOrgs.length === 0) {
         alert('Organization not found. Please check your invite token.')
+        setLoading(false)
+        return
+      }
+      
+      const existingOrg = existingOrgs[0]
+
+      // Check if user is already a member
+      const { data: existingMembership } = await supabase
+        .from('organization_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('organization_id', existingOrg.id)
+        .single()
+
+      if (existingMembership) {
+        alert('You are already a member of this organization.')
         setLoading(false)
         return
       }
@@ -151,7 +201,7 @@ const Sidebar: React.FC = () => {
         .from('organization_members')
         .insert({
           user_id: user.id,
-          organization_id: organizationId,
+          organization_id: existingOrg.id,
           role: 'member'
         })
 

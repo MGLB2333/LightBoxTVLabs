@@ -58,20 +58,36 @@ const Header: React.FC = () => {
         setCurrentOrg(null)
         return
       }
-      const { data, error } = await supabase
+      
+      // First get the user's organization memberships
+      const { data: memberships, error: membershipError } = await supabase
         .from('organization_members')
-        .select('organization:organization_id(id, name), organization_id')
+        .select('organization_id')
         .eq('user_id', user.id)
-      if (error || !data || data.length === 0) {
+      
+      if (membershipError || !memberships || memberships.length === 0) {
         setOrgs([])
         setCurrentOrg(null)
         return
       }
-      const orgsList = data.map((row: any) => ({ id: row.organization_id, name: row.organization?.name || 'Unknown Org' }))
-      setOrgs(orgsList)
+      
+      // Then get the organization details for each membership
+      const orgIds = memberships.map(m => m.organization_id)
+      const { data: orgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .in('id', orgIds)
+      
+      if (orgError || !orgs) {
+        setOrgs([])
+        setCurrentOrg(null)
+        return
+      }
+      
+      setOrgs(orgs)
       const storedOrgId = localStorage.getItem('currentOrgId')
-      const found = orgsList.find(o => o.id === storedOrgId)
-      setCurrentOrg(found || orgsList[0])
+      const found = orgs.find(o => o.id === storedOrgId)
+      setCurrentOrg(found || orgs[0])
     }
     fetchUserAndOrgs()
 
@@ -79,6 +95,12 @@ const Header: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('Auth state changed:', session?.user)
       setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchUserAndOrgs()
+      } else {
+        setOrgs([])
+        setCurrentOrg(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -115,6 +137,22 @@ const Header: React.FC = () => {
       setModalError(orgError.message)
       return
     }
+
+    // Add user as admin of the organization
+    const { error: memberError } = await supabase
+      .from('organization_members')
+      .insert({
+        user_id: user.id,
+        organization_id: newOrg.id,
+        role: 'admin'
+      })
+
+    if (memberError) {
+      console.error('Error adding user to organization:', memberError)
+      setModalError('Organization created but failed to add you as admin. Please contact support.')
+      return
+    }
+
     setShowCreateModal(false)
     setOrgNameInput('')
     setModalError('')
@@ -134,18 +172,34 @@ const Header: React.FC = () => {
         return
       }
 
-      // Use the token directly as organization_id
-      const organizationId = joinTokenInput.trim()
-      
-      // Check if organization exists by looking for any members
-      const { data: existingMembers } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('organization_id', organizationId)
-        .limit(1)
+      // Use the token as organization name to find the organization
+      const { data: existingOrgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('name', joinTokenInput.trim())
 
-      if (!existingMembers || existingMembers.length === 0) {
+      if (orgError) {
+        setModalError(`Organization lookup failed: ${orgError.message}`)
+        return
+      }
+      
+      if (!existingOrgs || existingOrgs.length === 0) {
         setModalError('Organization not found. Please check your invite token.')
+        return
+      }
+      
+      const existingOrg = existingOrgs[0]
+
+      // Check if user is already a member
+      const { data: existingMembership } = await supabase
+        .from('organization_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('organization_id', existingOrg.id)
+        .single()
+
+      if (existingMembership) {
+        setModalError('You are already a member of this organization.')
         return
       }
 
@@ -154,7 +208,7 @@ const Header: React.FC = () => {
         .from('organization_members')
         .insert({
           user_id: user.id,
-          organization_id: organizationId,
+          organization_id: existingOrg.id,
           role: 'member'
         })
 

@@ -1,4 +1,5 @@
 import { BaseAgent } from './BaseAgent';
+import type { AgentContext, AgentMessage, AgentResponse } from './types';
 
 interface HelpTopic {
   id: string;

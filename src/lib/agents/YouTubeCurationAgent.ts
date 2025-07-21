@@ -1,4 +1,5 @@
 import { BaseAgent } from './BaseAgent';
+import type { AgentContext, AgentMessage, AgentResponse } from './types';
 
 interface YouTubeChannel {
   id: string;
@@ -272,7 +273,10 @@ export class YouTubeCurationAgent extends BaseAgent {
   }
 
   private async performSearch(criteria: any): Promise<{ channels: YouTubeChannel[], videos: YouTubeVideo[] }> {
-    const results = { channels: [], videos: [] };
+    const results: { channels: YouTubeChannel[], videos: YouTubeVideo[] } = {
+      channels: [],
+      videos: []
+    };
 
     if (!this.apiKey) {
       throw new Error('YouTube API key not configured');
@@ -352,7 +356,7 @@ export class YouTubeCurationAgent extends BaseAgent {
     ];
 
     return mockChannels.filter(channel => 
-      criteria.topics.some((topic: string) => channel.topics.includes(topic))
+      criteria.topics.some((topic: string) => channel.topics?.includes(topic))
     );
   }
 
@@ -384,7 +388,7 @@ export class YouTubeCurationAgent extends BaseAgent {
         response += `${index + 1}. **${channel.title}**\n`;
         response += `   👥 ${channel.subscriberCount.toLocaleString()} subscribers\n`;
         response += `   📹 ${channel.videoCount.toLocaleString()} videos\n`;
-        response += `   🎯 Topics: ${channel.topics.join(', ')}\n`;
+        response += `   🎯 Topics: ${channel.topics?.join(', ') || 'Not specified'}\n`;
         response += `   📍 Location: ${channel.country}\n`;
         response += `   ⭐ Relevance: ${Math.round(channel.relevanceScore * 100)}%\n\n`;
       });
@@ -408,29 +412,4 @@ export class YouTubeCurationAgent extends BaseAgent {
 
     return response;
   }
-} 
-
-interface YouTubeChannel {
-  id: string;
-  title: string;
-  description: string;
-  subscriberCount: number;
-  videoCount: number;
-  viewCount: number;
-  country?: string;
-  topics?: string[];
-  relevanceScore: number;
-}
-
-interface YouTubeVideo {
-  id: string;
-  title: string;
-  description: string;
-  channelId: string;
-  channelTitle: string;
-  viewCount: number;
-  likeCount: number;
-  publishedAt: string;
-  duration: string;
-  relevanceScore: number;
 }

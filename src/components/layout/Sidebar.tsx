@@ -97,29 +97,13 @@ const Sidebar: React.FC = () => {
       const { data: newOrg, error: orgError } = await supabase
         .from('organizations')
         .insert({
-          name: orgName,
-          created_by: user.id
+          name: orgName
         })
         .select()
         .single()
 
       if (orgError) {
         alert('Failed to create organization. Please try again.')
-        setLoading(false)
-        return
-      }
-
-      // Add user as admin
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          user_id: user.id,
-          organization_id: newOrg.id,
-          role: 'admin'
-        })
-
-      if (memberError) {
-        alert('Organization created but failed to add you as admin.')
         setLoading(false)
         return
       }
@@ -146,16 +130,17 @@ const Sidebar: React.FC = () => {
         return
       }
 
-      // Simple token-based organization lookup
-      const orgName = `Organization-${token.substring(0, 8)}`
+      // Use the token directly as organization_id
+      const organizationId = token
       
-      const { data: existingOrg } = await supabase
-        .from('organizations')
-        .select('id')
-        .eq('name', orgName)
-        .single()
+      // Check if organization exists
+      const { data: existingMembers } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('organization_id', organizationId)
+        .limit(1)
 
-      if (!existingOrg) {
+      if (!existingMembers || existingMembers.length === 0) {
         alert('Organization not found. Please check your invite token.')
         setLoading(false)
         return
@@ -166,7 +151,7 @@ const Sidebar: React.FC = () => {
         .from('organization_members')
         .insert({
           user_id: user.id,
-          organization_id: existingOrg.id,
+          organization_id: organizationId,
           role: 'member'
         })
 

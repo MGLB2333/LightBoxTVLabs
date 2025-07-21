@@ -103,9 +103,16 @@ const Header: React.FC = () => {
       setModalError('Organisation name required')
       return
     }
-    const { error } = await supabase.rpc('create_organisation', { org_name: orgNameInput.trim() })
-    if (error) {
-      setModalError(error.message)
+    // Create organization directly
+    const { data: newOrg, error: orgError } = await supabase
+      .from('organizations')
+      .insert({
+        name: orgNameInput.trim()
+      })
+      .select()
+      .single()
+    if (orgError) {
+      setModalError(orgError.message)
       return
     }
     setShowCreateModal(false)
@@ -127,16 +134,17 @@ const Header: React.FC = () => {
         return
       }
 
-      // Simple token-based organization lookup
-      const orgName = `Organization-${joinTokenInput.trim().substring(0, 8)}`
+      // Use the token directly as organization_id
+      const organizationId = joinTokenInput.trim()
       
-      const { data: existingOrg } = await supabase
-        .from('organizations')
-        .select('id')
-        .eq('name', orgName)
-        .single()
+      // Check if organization exists by looking for any members
+      const { data: existingMembers } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('organization_id', organizationId)
+        .limit(1)
 
-      if (!existingOrg) {
+      if (!existingMembers || existingMembers.length === 0) {
         setModalError('Organization not found. Please check your invite token.')
         return
       }
@@ -146,7 +154,7 @@ const Header: React.FC = () => {
         .from('organization_members')
         .insert({
           user_id: user.id,
-          organization_id: existingOrg.id,
+          organization_id: organizationId,
           role: 'member'
         })
 

@@ -81,10 +81,51 @@ export class IncrementalReachAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Analyze the request and determine analysis parameters
+      // Step 1: Classify the query using our new method
+      const classification = await this.classifyQuery(message, context);
+      console.log('Incremental Reach Agent - Query classification:', classification);
+
+      // Step 2: Handle simple queries that don't need incremental reach analysis
+      if (this.isSimpleCampaignQuery(message)) {
+        return await this.handleSimpleCampaignQuery(message, context);
+      }
+
+      // Step 3: Handle low-confidence queries
+      if (classification.confidence < 0.3) {
+        return {
+          content: "I'm not entirely sure what you're asking about incremental reach. Could you please rephrase your question? For example, you could ask about specific campaigns, geographic areas, or time periods for incremental reach analysis.",
+          confidence: classification.confidence,
+          agentId: 'incremental-reach',
+          agentName: 'Incremental Reach Agent',
+          suggestions: [
+            'Ask about incremental reach for specific campaigns',
+            'Request geographic incremental reach analysis',
+            'Compare CTV vs linear incremental reach',
+            'Ask about time period incremental reach'
+          ],
+          nextActions: []
+        };
+      }
+
+      // Step 4: Use Chain-of-Thought processing for complex incremental reach queries
+      if (classification.complexity === 'complex' || classification.requiresData) {
+        const systemPrompt = this.createSystemPrompt(context);
+        const response = await this.processWithChainOfThought(message, context, history, systemPrompt);
+        
+        // Step 5: Validate the response
+        const validation = await this.validateResponse(response, message);
+        if (!validation.isValid) {
+          console.warn('Response validation failed:', validation.issues);
+          const improvedResponse = await this.improveResponse(response, message, validation.suggestedImprovements);
+          return this.createResponse(improvedResponse, classification.confidence);
+        }
+
+        return this.createResponse(response, classification.confidence);
+      }
+
+      // Step 6: Use legacy processing for moderate queries (fallback)
       const analysisParams = await this.analyzeRequest(message);
       
-      // Step 2: Check if we have enough information
       if (!this.hasEnoughInfo(analysisParams)) {
         return {
           content: this.generateClarificationQuestion(analysisParams),
@@ -96,42 +137,30 @@ export class IncrementalReachAgent extends BaseAgent {
             'Mention the time period for analysis',
             'Indicate geographic areas of interest',
             'Specify the type of media (CTV, linear, digital)'
-          ]
+          ],
+          nextActions: []
         };
       }
 
-      // Step 3: Gather campaign and ACR data
       const data = await this.gatherData(analysisParams, context);
-      
-      // Step 4: Calculate incremental reach
       const incrementalData = await this.calculateIncrementalReach(data, analysisParams);
-      
-      // Step 5: Generate insights and recommendations
       const insights = this.generateInsights(incrementalData, analysisParams);
-      
-      // Step 6: Format response
       const response = this.formatResponse(insights, analysisParams);
 
-      return {
-        content: response,
-        confidence: 0.9,
-        agentId: 'incremental-reach',
-        agentName: 'Incremental Reach Agent',
-        data: incrementalData,
-        suggestions: [
-          'Get detailed postcode-level analysis',
-          'Compare with other campaigns',
-          'Export incremental reach report',
-          'Analyze geographic patterns'
-        ]
-      };
+      return this.createResponse(response, classification.confidence);
     } catch (error) {
       console.error('Incremental Reach Agent error:', error);
       return {
-        content: "I encountered an error while calculating incremental reach. Please try again or contact support if the issue persists.",
+        content: "I apologize, but I encountered an error while processing your incremental reach request. Please try again or contact support if the issue persists.",
         confidence: 0.1,
         agentId: 'incremental-reach',
-        agentName: 'Incremental Reach Agent'
+        agentName: 'Incremental Reach Agent',
+        suggestions: [
+          'Try rephrasing your question',
+          'Ask about specific campaigns or time periods',
+          'Check if you have the necessary permissions'
+        ],
+        nextActions: []
       };
     }
   }
@@ -463,5 +492,194 @@ export class IncrementalReachAgent extends BaseAgent {
     });
 
     return response;
+  }
+
+  private isSimpleCampaignQuery(message: string): boolean {
+    const simpleCampaignKeywords = [
+      'what campaign', 'which campaign', 'campaign running', 'active campaign',
+      'my campaign', 'campaigns running', 'current campaign', 'campaign list',
+      'show campaign', 'list campaign', 'campaign status'
+    ];
+    
+    const lowerMessage = message.toLowerCase();
+    return simpleCampaignKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  private async handleSimpleCampaignQuery(message: string, context: AgentContext): Promise<AgentResponse> {
+    try {
+      // Get user's campaigns from Supabase
+      const { data: campaigns, error } = await supabase
+        .from('campaigns')
+        .select('id, name, status, created_at, start_date, end_date')
+        .eq('organization_id', context.organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching campaigns:', error);
+        return {
+          content: "I'm having trouble accessing your campaign data right now. Please try again later.",
+          confidence: 0.5,
+          agentId: 'incremental-reach',
+          agentName: 'Incremental Reach Agent',
+          suggestions: ['Check your campaign dashboard', 'Try refreshing the page'],
+          nextActions: []
+        };
+      }
+
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          content: "You don't have any campaigns set up yet. Would you like to create your first campaign?",
+          confidence: 0.9,
+          agentId: 'incremental-reach',
+          agentName: 'Incremental Reach Agent',
+          suggestions: ['Create a new campaign', 'Import existing campaigns'],
+          nextActions: ['Go to Campaigns page', 'Create new campaign']
+        };
+      }
+
+      const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'running');
+      const allCampaigns = campaigns.slice(0, 5); // Show top 5 most recent
+
+      let response = '';
+      
+      if (activeCampaigns.length > 0) {
+        response += `**Active Campaigns:**\n`;
+        activeCampaigns.forEach(campaign => {
+          response += `• ${campaign.name} (${campaign.status})\n`;
+        });
+        response += `\n`;
+      }
+
+      if (allCampaigns.length > 0) {
+        response += `**Recent Campaigns:**\n`;
+        allCampaigns.forEach(campaign => {
+          const status = campaign.status || 'draft';
+          response += `• ${campaign.name} (${status})\n`;
+        });
+      }
+
+      if (campaigns.length > 5) {
+        response += `\n*Showing ${allCampaigns.length} of ${campaigns.length} total campaigns*`;
+      }
+
+      return {
+        content: response,
+        confidence: 0.9,
+        agentId: 'incremental-reach',
+        agentName: 'Incremental Reach Agent',
+        suggestions: [
+          'Ask about specific campaign performance',
+          'Request incremental reach analysis',
+          'Compare campaign metrics'
+        ],
+        nextActions: [
+          'View campaign details',
+          'Create new campaign',
+          'Analyze campaign performance'
+        ]
+      };
+    } catch (error) {
+      console.error('Error handling simple campaign query:', error);
+      return {
+        content: "I'm having trouble accessing your campaign information. Please try again or check your campaign dashboard.",
+        confidence: 0.3,
+        agentId: 'incremental-reach',
+        agentName: 'Incremental Reach Agent',
+        suggestions: ['Check campaign dashboard', 'Refresh the page'],
+        nextActions: []
+      };
+    }
+  }
+
+  private createResponse(content: string, confidence: number): AgentResponse {
+    return {
+      content,
+      confidence,
+      agentId: 'incremental-reach',
+      agentName: 'Incremental Reach Agent',
+      suggestions: [
+        'Ask about incremental reach for specific campaigns',
+        'Request geographic incremental reach analysis',
+        'Compare CTV vs linear incremental reach',
+        'Analyze incremental reach by time period'
+      ],
+      nextActions: [
+        'View incremental reach dashboard',
+        'Export incremental reach report',
+        'Set up incremental reach alerts'
+      ]
+    };
+  }
+
+  protected async gatherRelevantData(message: string, context: AgentContext, planning: string): Promise<string> {
+    try {
+      // Extract data requirements from planning
+      const dataNeeded = planning.includes('DATA_NEEDED') 
+        ? planning.split('DATA_NEEDED:')[1]?.split('\n')[0] || ''
+        : '';
+
+      // Gather incremental reach data based on requirements
+      const data: any = {};
+      
+      if (dataNeeded.includes('campaign') || dataNeeded.includes('delivery')) {
+        // Get campaign delivery data
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('id, name, status')
+          .eq('organization_id', context.organizationId);
+        data.campaigns = campaigns || [];
+      }
+      
+      if (dataNeeded.includes('postcode') || dataNeeded.includes('geographic')) {
+        // Get postcode delivery data
+        const { data: deliveryData } = await supabase
+          .from('campaign_events')
+          .select('postcode_sector, impressions, completions')
+          .eq('organization_id', context.organizationId)
+          .limit(1000);
+        data.deliveryData = deliveryData || [];
+      }
+
+      return this.formatDataContext(data);
+    } catch (error) {
+      console.error('Error gathering relevant data:', error);
+      return 'Unable to gather relevant incremental reach data at this time.';
+    }
+  }
+
+  private formatDataContext(data: any): string {
+    let context = '';
+    
+    if (data.campaigns && data.campaigns.length > 0) {
+      context += `Available campaigns: ${data.campaigns.length}\n`;
+    }
+    
+    if (data.deliveryData && data.deliveryData.length > 0) {
+      context += `Delivery data points: ${data.deliveryData.length}\n`;
+    }
+    
+    return context || 'No relevant data available.';
+  }
+
+  private async improveResponse(response: string, originalQuery: string, suggestions: string[]): Promise<string> {
+    const improvementPrompt = `Improve this incremental reach response based on the feedback:
+
+ORIGINAL QUERY: "${originalQuery}"
+CURRENT RESPONSE: "${response}"
+IMPROVEMENT SUGGESTIONS: ${suggestions.join(', ')}
+
+Provide an improved response that addresses the issues while maintaining accuracy and helpfulness for incremental reach analysis.`;
+
+    const improvementMessages = [
+      { role: 'system', content: improvementPrompt },
+      { role: 'user', content: `Query: "${originalQuery}"\nResponse: "${response}"` }
+    ];
+
+    try {
+      return await this.callOpenAI(improvementMessages, {});
+    } catch (error) {
+      console.error('Response improvement failed:', error);
+      return response; // Return original response if improvement fails
+    }
   }
 }

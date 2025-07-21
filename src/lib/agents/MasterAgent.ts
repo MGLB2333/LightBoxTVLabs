@@ -47,7 +47,16 @@ export class MasterAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Find the best agent to handle this message
+      // Step 1: Handle technical questions directly
+      if (this.isTechnicalQuestion(message)) {
+        return await this.handleTechnicalQuestion(message);
+      }
+
+      // Step 2: Classify the query using our new method
+      const classification = await this.classifyQuery(message, context);
+      console.log('Master Agent - Query classification:', classification);
+
+      // Step 3: Find the best agent to handle this message
       const bestAgent = this.findBestAgent(message, context);
       
       if (bestAgent) {
@@ -56,7 +65,12 @@ export class MasterAgent extends BaseAgent {
         return await bestAgent.process(message, context, history);
       }
 
-      // Fallback response if no specific agent can handle it
+      // Step 4: Handle low-confidence queries
+      if (classification.confidence < 0.3) {
+        return this.generateHelpfulFallback(message);
+      }
+
+      // Step 5: Fallback response if no specific agent can handle it
       return this.generateHelpfulFallback(message);
     } catch (error) {
       console.error('Master Agent error:', error);
@@ -159,21 +173,48 @@ export class MasterAgent extends BaseAgent {
   }
 
   private findBestAgent(message: string, context: AgentContext): Agent | null {
-    let bestAgent: Agent | null = null;
-    let highestConfidence = 0;
-
-    for (const agent of this.agents) {
-      if (agent.canHandle(message, context)) {
-        // Calculate confidence based on keyword matching
-        const confidence = this.calculateConfidence(agent, message, context);
-        if (confidence > highestConfidence) {
-          highestConfidence = confidence;
-          bestAgent = agent;
-        }
+    const lowerMessage = message.toLowerCase();
+    
+    // Priority routing for simple queries
+    if (this.isSimpleCampaignQuery(lowerMessage)) {
+      // For simple campaign queries, prefer Campaign Agent over Incremental Reach Agent
+      const campaignAgent = this.agents.find(agent => agent.id === 'campaign');
+      if (campaignAgent) {
+        console.log('Routing simple campaign query to Campaign Agent');
+        return campaignAgent;
       }
     }
 
-    return bestAgent;
+    // Calculate confidence scores for all agents
+    const agentScores = this.agents.map(agent => ({
+      agent,
+      confidence: this.calculateConfidence(agent, message, context)
+    }));
+
+    // Sort by confidence and return the best match
+    agentScores.sort((a, b) => b.confidence - a.confidence);
+    
+    console.log('Agent confidence scores:', agentScores.map(score => 
+      `${score.agent.name}: ${score.confidence.toFixed(2)}`
+    ));
+
+    // Return the agent with highest confidence, but only if it's above threshold
+    const bestMatch = agentScores[0];
+    if (bestMatch && bestMatch.confidence > 0.3) {
+      return bestMatch.agent;
+    }
+
+    return null;
+  }
+
+  private isSimpleCampaignQuery(message: string): boolean {
+    const simpleCampaignKeywords = [
+      'what campaign', 'which campaign', 'campaign running', 'active campaign',
+      'my campaign', 'campaigns running', 'current campaign', 'campaign list',
+      'show campaign', 'list campaign', 'campaign status', 'campaigns i have'
+    ];
+    
+    return simpleCampaignKeywords.some(keyword => message.includes(keyword));
   }
 
   private calculateConfidence(agent: Agent, message: string, context: AgentContext): number {
@@ -231,6 +272,66 @@ export class MasterAgent extends BaseAgent {
     if (lowerMessage.includes('campaign') && lowerMessage.includes('performance')) confidence += 0.2;
 
     return Math.min(confidence, 1);
+  }
+
+  private isTechnicalQuestion(message: string): boolean {
+    const technicalKeywords = [
+      'ai model', 'openai', 'gpt', 'model', 'algorithm', 'technology',
+      'how do you work', 'what model', 'which model', 'ai system',
+      'machine learning', 'neural network', 'language model'
+    ];
+    
+    const lowerMessage = message.toLowerCase();
+    return technicalKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  private async handleTechnicalQuestion(message: string): Promise<AgentResponse> {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('ai model') || lowerMessage.includes('what model') || lowerMessage.includes('which model')) {
+      const model = import.meta.env.VITE_OPENAI_MODEL || 'gpt-3.5-turbo';
+      return {
+        content: `I'm powered by **${model}** from OpenAI. I'm a multi-agent system that routes your questions to specialized agents:\n\n• **Analytics Agent** - Campaign performance & metrics\n• **Campaign Agent** - Campaign management & optimization\n• **Audience Agent** - Audience targeting & segments\n• **Incremental Reach Agent** - Unique reach analysis\n• **TV Intelligence Agent** - TV viewing insights\n• **YouTube Curation Agent** - Content discovery\n\nEach agent has specific expertise and can access relevant data to provide accurate, actionable insights.`,
+        confidence: 0.9,
+        agentId: 'master',
+        agentName: 'Master Agent',
+        suggestions: [
+          'Ask about campaign performance',
+          'Find audience segments',
+          'Get TV intelligence insights'
+        ],
+        nextActions: []
+      };
+    }
+    
+    if (lowerMessage.includes('how do you work') || lowerMessage.includes('how does this work')) {
+      return {
+        content: `I work as a **multi-agent system** that intelligently routes your questions:\n\n1. **Query Analysis** - I analyze what you're asking for\n2. **Agent Selection** - I choose the best specialized agent\n3. **Data Gathering** - The agent fetches relevant data\n4. **Response Generation** - I provide accurate, actionable insights\n\n**Specialized Agents:**\n• Analytics Agent → Campaign metrics & performance\n• Campaign Agent → Campaign management & optimization\n• Audience Agent → Audience targeting & segments\n• Incremental Reach Agent → Unique reach analysis\n• TV Intelligence Agent → TV viewing patterns\n• YouTube Curation Agent → Content discovery\n\nJust ask me anything about your LightBoxTV data and I'll route it to the right expert!`,
+        confidence: 0.9,
+        agentId: 'master',
+        agentName: 'Master Agent',
+        suggestions: [
+          'Try asking about your campaigns',
+          'Ask about audience insights',
+          'Get performance analytics'
+        ],
+        nextActions: []
+      };
+    }
+
+    // Default technical response
+    return {
+      content: `I'm a multi-agent AI system powered by OpenAI's language models. I can help you with:\n\n• **Campaign Analytics** - Performance metrics, CPM analysis, trends\n• **Audience Insights** - Demographics, targeting, segments\n• **TV Intelligence** - Viewing patterns, brand visibility\n• **Incremental Reach** - Unique audience analysis\n• **YouTube Curation** - Content discovery & channel analysis\n\nEach area has a specialized agent that can access relevant data and provide detailed insights. What would you like to know about?`,
+      confidence: 0.8,
+      agentId: 'master',
+      agentName: 'Master Agent',
+      suggestions: [
+        'Ask about your campaigns',
+        'Get audience insights',
+        'Analyze TV intelligence'
+      ],
+      nextActions: []
+    };
   }
 
   protected createSystemPrompt(context: AgentContext): string {

@@ -64,17 +64,142 @@ export class CampaignAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Determine what type of analysis is needed
+      // Step 1: Classify the query using our new method
+      const classification = await this.classifyQuery(message, context);
+      console.log('Campaign Agent - Query classification:', classification);
+
+      // Step 2: Handle simple campaign queries directly
+      if (this.isSimpleCampaignQuery(message)) {
+        return await this.handleSimpleCampaignQuery(message, context);
+      }
+
+      // Step 3: Handle low-confidence queries
+      if (classification.confidence < 0.3) {
+        return {
+          content: "I'm not entirely sure what you're asking about campaigns. Could you please rephrase your question? For example, you could ask about specific campaigns, performance metrics, or optimization strategies.",
+          confidence: classification.confidence,
+          agentId: 'campaign',
+          agentName: 'Campaign Agent',
+          suggestions: [
+            'Ask about campaign performance',
+            'Request specific metrics',
+            'Mention campaign names',
+            'Ask about optimization'
+          ],
+          nextActions: []
+        };
+      }
+
+      // Step 4: Use Chain-of-Thought processing for complex queries
+      if (classification.complexity === 'complex' || classification.requiresData) {
+        const systemPrompt = this.createSystemPrompt(context);
+        const response = await this.processWithChainOfThought(message, context, history, systemPrompt);
+        
+        // Step 5: Validate the response
+        const validation = await this.validateResponse(response, message);
+        if (!validation.isValid) {
+          console.warn('Response validation failed:', validation.issues);
+          const improvedResponse = await this.improveResponse(response, message, validation.suggestedImprovements);
+          return this.createResponse(improvedResponse, classification.confidence);
+        }
+
+        return this.createResponse(response, classification.confidence);
+      }
+
+      // Step 6: Use legacy processing for moderate queries (fallback)
       const analysisType = this.determineAnalysisType(message);
-      
-      // Get relevant data based on analysis type
       const data = await this.getRelevantData(analysisType, context);
-      
-      // Create system prompt with real data context
       const systemPrompt = this.createSystemPrompt(context, data);
-      
-      // Use two-call approach for better responses
       const response = await this.processWithTwoCalls(message, context, history, systemPrompt);
+
+      return this.createResponse(response, classification.confidence);
+    } catch (error) {
+      console.error('Campaign Agent error:', error);
+      return {
+        content: "I apologize, but I encountered an error while processing your campaign request. Please try again or contact support if the issue persists.",
+        confidence: 0.1,
+        agentId: 'campaign',
+        agentName: 'Campaign Agent',
+        suggestions: [
+          'Try rephrasing your question',
+          'Ask about specific campaigns or metrics',
+          'Check if you have the necessary permissions'
+        ],
+        nextActions: []
+      };
+    }
+  }
+
+  private isSimpleCampaignQuery(message: string): boolean {
+    const simpleCampaignKeywords = [
+      'what campaign', 'which campaign', 'campaign running', 'active campaign',
+      'my campaign', 'campaigns running', 'current campaign', 'campaign list',
+      'show campaign', 'list campaign', 'campaign status', 'campaigns i have',
+      'how many campaign', 'campaign count'
+    ];
+    
+    const lowerMessage = message.toLowerCase();
+    return simpleCampaignKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  private async handleSimpleCampaignQuery(message: string, context: AgentContext): Promise<AgentResponse> {
+    try {
+      // Get user's campaigns from Supabase
+      const { data: campaigns, error } = await supabase
+        .from('campaigns')
+        .select('id, name, status, created_at, start_date, end_date, budget, spend')
+        .eq('organization_id', context.organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching campaigns:', error);
+        return {
+          content: "I'm having trouble accessing your campaign data right now. Please try again later.",
+          confidence: 0.5,
+          agentId: 'campaign',
+          agentName: 'Campaign Agent',
+          suggestions: ['Check your campaign dashboard', 'Try refreshing the page'],
+          nextActions: []
+        };
+      }
+
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          content: "You don't have any campaigns set up yet. Would you like to create your first campaign?",
+          confidence: 0.9,
+          agentId: 'campaign',
+          agentName: 'Campaign Agent',
+          suggestions: ['Create a new campaign', 'Import existing campaigns'],
+          nextActions: ['Go to Campaigns page', 'Create new campaign']
+        };
+      }
+
+      const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'running');
+      const allCampaigns = campaigns.slice(0, 5); // Show top 5 most recent
+
+      let response = '';
+      
+      if (activeCampaigns.length > 0) {
+        response += `**Active Campaigns (${activeCampaigns.length}):**\n`;
+        activeCampaigns.forEach(campaign => {
+          const spend = campaign.spend ? ` - £${campaign.spend.toLocaleString()}` : '';
+          response += `• ${campaign.name} (${campaign.status})${spend}\n`;
+        });
+        response += `\n`;
+      }
+
+      if (allCampaigns.length > 0) {
+        response += `**Recent Campaigns:**\n`;
+        allCampaigns.forEach(campaign => {
+          const status = campaign.status || 'draft';
+          const spend = campaign.spend ? ` - £${campaign.spend.toLocaleString()}` : '';
+          response += `• ${campaign.name} (${status})${spend}\n`;
+        });
+      }
+
+      if (campaigns.length > 5) {
+        response += `\n*Showing ${allCampaigns.length} of ${campaigns.length} total campaigns*`;
+      }
 
       return {
         content: response,
@@ -82,25 +207,111 @@ export class CampaignAgent extends BaseAgent {
         agentId: 'campaign',
         agentName: 'Campaign Agent',
         suggestions: [
-          'Ask about campaign performance',
-          'Request geographic insights',
-          'Get optimization recommendations',
+          'Ask about specific campaign performance',
+          'Request campaign optimization tips',
           'Compare campaign metrics'
         ],
         nextActions: [
-          'View campaign dashboard',
-          'Export performance report',
-          'Set up campaign alerts'
+          'View campaign details',
+          'Create new campaign',
+          'Analyze campaign performance'
         ]
       };
     } catch (error) {
-      console.error('Campaign Agent error:', error);
+      console.error('Error handling simple campaign query:', error);
       return {
-        content: "I apologize, but I encountered an error while processing your request. Please try again or contact support if the issue persists.",
-        confidence: 0.1,
+        content: "I'm having trouble accessing your campaign information. Please try again or check your campaign dashboard.",
+        confidence: 0.3,
         agentId: 'campaign',
-        agentName: 'Campaign Agent'
+        agentName: 'Campaign Agent',
+        suggestions: ['Check campaign dashboard', 'Refresh the page'],
+        nextActions: []
       };
+    }
+  }
+
+  private createResponse(content: string, confidence: number): AgentResponse {
+    return {
+      content,
+      confidence,
+      agentId: 'campaign',
+      agentName: 'Campaign Agent',
+      suggestions: [
+        'Ask about campaign performance',
+        'Request geographic insights',
+        'Get optimization recommendations',
+        'Compare campaign metrics'
+      ],
+      nextActions: [
+        'View campaign dashboard',
+        'Export performance report',
+        'Set up campaign alerts'
+      ]
+    };
+  }
+
+  protected async gatherRelevantData(message: string, context: AgentContext, planning: string): Promise<string> {
+    try {
+      // Extract data requirements from planning
+      const dataNeeded = planning.includes('DATA_NEEDED') 
+        ? planning.split('DATA_NEEDED:')[1]?.split('\n')[0] || ''
+        : '';
+
+      // Gather campaign data based on requirements
+      const data: any = {};
+      
+      if (dataNeeded.includes('campaign') || dataNeeded.includes('performance')) {
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('id, name, status, budget, spend')
+          .eq('organization_id', context.organizationId);
+        data.campaigns = campaigns || [];
+      }
+      
+      if (dataNeeded.includes('metrics') || dataNeeded.includes('impressions')) {
+        const { data: metrics } = await supabase
+          .from('campaign_events')
+          .select('campaign_id, impressions, completions, spend')
+          .eq('organization_id', context.organizationId)
+          .limit(1000);
+        data.metrics = metrics || [];
+      }
+      
+      if (dataNeeded.includes('geographic') || dataNeeded.includes('location')) {
+        const { data: geoData } = await supabase
+          .from('campaign_events')
+          .select('postcode_sector, impressions, completions')
+          .eq('organization_id', context.organizationId)
+          .limit(1000);
+        data.geographic = geoData || [];
+      }
+
+      return this.formatDataContext(data);
+    } catch (error) {
+      console.error('Error gathering relevant data:', error);
+      return 'Unable to gather relevant campaign data at this time.';
+    }
+  }
+
+  private async improveResponse(response: string, originalQuery: string, suggestions: string[]): Promise<string> {
+    const improvementPrompt = `Improve this campaign response based on the feedback:
+
+ORIGINAL QUERY: "${originalQuery}"
+CURRENT RESPONSE: "${response}"
+IMPROVEMENT SUGGESTIONS: ${suggestions.join(', ')}
+
+Provide an improved response that addresses the issues while maintaining accuracy and helpfulness for campaign analysis.`;
+
+    const improvementMessages = [
+      { role: 'system', content: improvementPrompt },
+      { role: 'user', content: `Query: "${originalQuery}"\nResponse: "${response}"` }
+    ];
+
+    try {
+      return await this.callOpenAI(improvementMessages, {});
+    } catch (error) {
+      console.error('Response improvement failed:', error);
+      return response; // Return original response if improvement fails
     }
   }
 

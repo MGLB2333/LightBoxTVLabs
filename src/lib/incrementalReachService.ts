@@ -350,7 +350,9 @@ export class IncrementalReachService {
           incremental_sectors: 0,
           incremental_percentage: 0,
           total_impressions: 0,
-          incremental_impressions: 0
+          incremental_impressions: 0,
+          cost_efficiency: 0,
+          audience_density: 0
         });
       }
 

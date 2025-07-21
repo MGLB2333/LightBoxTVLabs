@@ -219,8 +219,8 @@ export class AudienceAnalysisService {
     
     // Geographic breakdown
     const geographicBreakdown: GeographicAudience[] = combined
-      .filter(item => item.impressions > 0)
-      .sort((a, b) => b.impressions - a.impressions)
+      .filter((item: any) => item.impressions > 0)
+      .sort((a: any, b: any) => b.impressions - a.impressions)
       .slice(0, 20); // Top 20 areas
     
     // Top performing areas

@@ -115,8 +115,8 @@ export class SambaService {
           network: spot.network,
           spot_count: 0,
           total_duration: 0,
-          unique_advertisers: new Set(),
-          unique_brands: new Set(),
+          unique_advertisers: new Set<string>(),
+          unique_brands: new Set<string>(),
           avg_duration: 0
         });
       }
@@ -129,7 +129,9 @@ export class SambaService {
     });
 
     return Array.from(networkMap.values()).map(stats => ({
-      ...stats,
+      network: stats.network,
+      spot_count: stats.spot_count,
+      total_duration: stats.total_duration,
       unique_advertisers: stats.unique_advertisers.size,
       unique_brands: stats.unique_brands.size,
       avg_duration: stats.spot_count > 0 ? Math.round(stats.total_duration / stats.spot_count) : 0

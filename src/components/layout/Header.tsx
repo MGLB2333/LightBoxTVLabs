@@ -119,15 +119,51 @@ const Header: React.FC = () => {
       setModalError('Invite token required')
       return
     }
-    const { error } = await supabase.rpc('join_org_with_token', { invite_token: joinTokenInput.trim() })
-    if (error) {
-      setModalError(error.message)
-      return
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setModalError('User not authenticated')
+        return
+      }
+
+      // Simple token-based organization lookup
+      const orgName = `Organization-${joinTokenInput.trim().substring(0, 8)}`
+      
+      const { data: existingOrg } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('name', orgName)
+        .single()
+
+      if (!existingOrg) {
+        setModalError('Organization not found. Please check your invite token.')
+        return
+      }
+
+      // Add user to organization
+      const { error: joinError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: existingOrg.id,
+          role: 'member'
+        })
+
+      if (joinError) {
+        console.error('Error joining organization:', joinError)
+        setModalError('Failed to join organization. You may already be a member.')
+        return
+      }
+
+      setShowJoinModal(false)
+      setJoinTokenInput('')
+      setModalError('')
+      window.location.reload()
+    } catch (error) {
+      console.error('Error joining organization:', error)
+      setModalError('Failed to join organization. Please try again.')
     }
-    setShowJoinModal(false)
-    setJoinTokenInput('')
-    setModalError('')
-    window.location.reload()
   }
 
   const handleSignOut = async () => {

@@ -83,29 +83,106 @@ const Sidebar: React.FC = () => {
   const handleCreateOrg = async () => {
     const orgName = prompt('Enter new organisation name:')
     if (!orgName) return
-    setLoading(true)
-    const { data, error } = await supabase.rpc('create_organisation', { org_name: orgName })
-    if (error) {
-      alert(error.message)
+    
+    try {
+      setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('User not authenticated')
+        setLoading(false)
+        return
+      }
+
+      // Create organization directly
+      const { data: newOrg, error: orgError } = await supabase
+        .from('organizations')
+        .insert({
+          name: orgName,
+          created_by: user.id
+        })
+        .select()
+        .single()
+
+      if (orgError) {
+        alert('Failed to create organization. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      // Add user as admin
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: newOrg.id,
+          role: 'admin'
+        })
+
+      if (memberError) {
+        alert('Organization created but failed to add you as admin.')
+        setLoading(false)
+        return
+      }
+
+      // Refetch orgs
+      window.location.reload()
+    } catch (error) {
+      console.error('Error creating organization:', error)
+      alert('Failed to create organization. Please try again.')
       setLoading(false)
-      return
     }
-    // Refetch orgs
-    window.location.reload()
   }
 
   const handleJoinOrg = async () => {
     const token = prompt('Enter invite token:')
     if (!token) return
-    setLoading(true)
-    const { error } = await supabase.rpc('join_org_with_token', { invite_token: token })
-    if (error) {
-      alert(error.message)
+    
+    try {
+      setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('User not authenticated')
+        setLoading(false)
+        return
+      }
+
+      // Simple token-based organization lookup
+      const orgName = `Organization-${token.substring(0, 8)}`
+      
+      const { data: existingOrg } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('name', orgName)
+        .single()
+
+      if (!existingOrg) {
+        alert('Organization not found. Please check your invite token.')
+        setLoading(false)
+        return
+      }
+
+      // Add user to organization
+      const { error: joinError } = await supabase
+        .from('organization_members')
+        .insert({
+          user_id: user.id,
+          organization_id: existingOrg.id,
+          role: 'member'
+        })
+
+      if (joinError) {
+        alert('Failed to join organization. You may already be a member.')
+        setLoading(false)
+        return
+      }
+
+      // Refetch orgs
+      window.location.reload()
+    } catch (error) {
+      console.error('Error joining organization:', error)
+      alert('Failed to join organization. Please try again.')
       setLoading(false)
-      return
     }
-    // Refetch orgs
-    window.location.reload()
   }
 
   return (

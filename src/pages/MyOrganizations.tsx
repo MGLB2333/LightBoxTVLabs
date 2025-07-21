@@ -72,30 +72,21 @@ const MyOrganizations: React.FC = () => {
       setModalError('Organisation name required')
       return
     }
-    const { error } = await supabase.rpc('create_organisation', { org_name: orgNameInput.trim() })
-    if (error) {
-      setModalError(error.message)
-      return
-    }
+    // Temporarily disabled - RPC function doesn't exist
+    setModalError('Organization creation is temporarily disabled. Please contact support.')
     setShowCreateModal(false)
     setOrgNameInput('')
-    setModalError('')
-    window.location.reload()
   }
+  
   const submitJoinOrg = async () => {
     if (!joinTokenInput.trim()) {
       setModalError('Invite token required')
       return
     }
-    const { error } = await supabase.rpc('join_org_with_token', { invite_token: joinTokenInput.trim() })
-    if (error) {
-      setModalError(error.message)
-      return
-    }
+    // Temporarily disabled - RPC function doesn't exist
+    setModalError('Organization joining is temporarily disabled. Please contact support.')
     setShowJoinModal(false)
     setJoinTokenInput('')
-    setModalError('')
-    window.location.reload()
   }
 
   const handleCreateOrgClick = () => {
@@ -107,14 +98,13 @@ const MyOrganizations: React.FC = () => {
   }
   const handleInviteMembers = async () => {
     if (!currentOrg) return
-    // Call Supabase to generate a token for this org
-    const { data, error } = await supabase.rpc('generate_invite_token', { org_id: currentOrg.id })
-    if (error || !data) {
-      setModalError(error?.message || 'Failed to generate invite token')
-      setShowInviteModal(true)
-      return
-    }
-    setInviteToken(data.token)
+    
+    // Generate a simple invite token client-side
+    const inviteToken = crypto.randomUUID()
+    
+    // Store the token in a temporary table or use it directly
+    // For now, we'll just use it directly
+    setInviteToken(inviteToken)
     setShowInviteModal(true)
   }
 

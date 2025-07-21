@@ -19,15 +19,9 @@ export abstract class BaseAgent implements Agent {
 
   protected async querySupabase(query: string, context: AgentContext) {
     try {
-      // This is a simplified query interface - you can expand this based on your needs
-      const { data, error } = await supabase.rpc('query_analytics', {
-        query_text: query,
-        user_id: context.userId,
-        org_id: context.organizationId
-      });
-
-      if (error) throw error;
-      return data;
+      // Temporarily disabled - RPC function doesn't exist
+      console.warn('Supabase analytics query disabled - RPC function not available');
+      return { message: 'Analytics queries are temporarily unavailable. Please contact support.' };
     } catch (error) {
       console.error('Supabase query error:', error);
       throw error;

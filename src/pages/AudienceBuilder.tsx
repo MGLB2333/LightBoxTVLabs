@@ -1043,32 +1043,3 @@ const AudienceBuilder: React.FC = () => {
 };
 
 export default AudienceBuilder; 
-                            <button
-                              onClick={() => toggleSegment(segment['Segment ID'])}
-                              className="ml-1 hover:bg-[#02b3e5]/80 rounded-full p-0.5"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      {renderContent()}
-    </div>
-  );
-};
-
-export default AudienceBuilder; 

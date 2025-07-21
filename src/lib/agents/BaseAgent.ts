@@ -40,31 +40,54 @@ export abstract class BaseAgent implements Agent {
     const maxTokens = parseInt(import.meta.env.VITE_OPENAI_MAX_TOKENS || '4000');
     const temperature = parseFloat(import.meta.env.VITE_OPENAI_TEMPERATURE || '0.7');
 
+    if (!apiKey || apiKey === 'your_openai_api_key_here') {
+      throw new Error('OpenAI API key not configured');
+    }
+
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           model,
           messages,
           max_tokens: maxTokens,
           temperature,
-          stream: false
-        })
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        if (response.status === 401) {
+          throw new Error('OpenAI API key is invalid or expired');
+        } else if (response.status === 429) {
+          throw new Error('OpenAI API rate limit exceeded');
+        } else if (response.status >= 500) {
+          throw new Error('OpenAI API server error');
+        } else {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      return data.choices[0]?.message?.content || 'No response from OpenAI';
     } catch (error) {
       console.error('OpenAI API error:', error);
-      throw error;
+      
+      // Return a fallback response instead of throwing
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          return 'OpenAI API key is not configured or invalid. Please check your API key in the environment variables.';
+        } else if (error.message.includes('rate limit')) {
+          return 'OpenAI API rate limit exceeded. Please try again later.';
+        } else if (error.message.includes('server error')) {
+          return 'OpenAI API is currently unavailable. Please try again later.';
+        }
+      }
+      
+      return 'Unable to connect to OpenAI API. Please check your internet connection and API key configuration.';
     }
   }
 

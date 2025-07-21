@@ -9,7 +9,3 @@ export { GeneralHelpAgent } from './GeneralHelpAgent';
 export { BaseAgent } from './BaseAgent';
 export type { Agent, AgentContext, AgentMessage, AgentResponse, AgentCapability } from './types';
 export { agentService } from './AgentService'; 
-export { GeneralHelpAgent } from './GeneralHelpAgent';
-export { BaseAgent } from './BaseAgent';
-export type { Agent, AgentContext, AgentMessage, AgentResponse, AgentCapability } from './types';
-export { agentService } from './AgentService'; 

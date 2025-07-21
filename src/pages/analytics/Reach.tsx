@@ -421,20 +421,3 @@ const Reach: React.FC = () => {
 };
 
 export default Reach; 
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                    {day.newReach.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                    {day.cumulativeReach.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Reach; 

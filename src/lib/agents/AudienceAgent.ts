@@ -208,14 +208,13 @@ export class AudienceAgent extends BaseAgent {
   }
 
   private async initializeEmbeddings(): Promise<void> {
-    console.log('🔧 Initializing segment embeddings...');
+    console.log('🔧 Initializing embeddings for', this.experianSegments.length, 'segments...');
     
-    // Create embeddings for each segment
     const embeddingPromises = this.experianSegments.map(async (segment) => {
       const textForEmbedding = `${segment['Segment Name']} ${segment['Taxonomy > Parent Path']} ${segment['Description'] || ''}`.trim();
+      const embedding = await this.generateEmbedding(textForEmbedding);
       
-      try {
-        const embedding = await this.generateEmbedding(textForEmbedding);
+      if (embedding) {
         return {
           segmentId: segment['Segment ID'],
           segmentName: segment['Segment Name'],
@@ -224,44 +223,55 @@ export class AudienceAgent extends BaseAgent {
           embedding,
           textForEmbedding
         };
-      } catch (error) {
-        console.warn(`⚠️ Failed to generate embedding for segment ${segment['Segment ID']}:`, error);
-        // Return null for failed embeddings
-        return null;
       }
+      return null;
     });
 
     const results = await Promise.all(embeddingPromises);
+    this.segmentEmbeddings = results.filter((result): result is SegmentEmbedding => result !== null);
     
-    // Filter out failed embeddings
-    this.segmentEmbeddings = results.filter((embedding): embedding is SegmentEmbedding => embedding !== null);
-    this.embeddingsInitialized = true;
-    console.log(`✅ Initialized embeddings for ${this.segmentEmbeddings.length} segments`);
+    console.log(`✅ Initialized ${this.segmentEmbeddings.length} embeddings (${this.experianSegments.length - this.segmentEmbeddings.length} failed)`);
   }
 
-  private async generateEmbedding(text: string): Promise<number[]> {
+  private async generateEmbedding(text: string): Promise<number[] | null> {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    if (!apiKey || apiKey === 'your_openai_api_key_here') {
+      console.warn('OpenAI API key not configured, skipping embedding generation');
+      return null;
+    }
+
     try {
       const response = await fetch('https://api.openai.com/v1/embeddings', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
+          model: 'text-embedding-3-small',
           input: text,
-          model: 'text-embedding-3-small'
-        })
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        if (response.status === 401) {
+          console.warn('OpenAI API key is invalid or expired');
+          return null;
+        } else if (response.status === 429) {
+          console.warn('OpenAI API rate limit exceeded');
+          return null;
+        } else {
+          console.warn(`OpenAI API error: ${response.status}`);
+          return null;
+        }
       }
 
       const data = await response.json();
-      return data.data[0].embedding;
+      return data.data[0]?.embedding || null;
     } catch (error) {
-      console.error('❌ Error generating embedding:', error);
-      throw error;
+      console.error('Error generating embedding:', error);
+      return null;
     }
   }
 
@@ -297,6 +307,30 @@ export class AudienceAgent extends BaseAgent {
 
     // Step 1: Generate embedding for user input
     const userEmbedding = await this.generateEmbedding(userDescription);
+    
+    if (!userEmbedding) {
+      console.warn('⚠️ Could not generate user embedding, falling back to keyword-based search');
+      // Fallback to simple keyword matching
+      const lowerDescription = userDescription.toLowerCase();
+      const keywordMatches = this.experianSegments
+        .filter(segment => {
+          const text = `${segment['Segment Name']} ${segment['Taxonomy > Parent Path']} ${segment['Description'] || ''}`.toLowerCase();
+          return text.includes(lowerDescription) || lowerDescription.split(' ').some(word => text.includes(word));
+        })
+        .slice(0, 5)
+        .map((segment, index) => ({
+          segmentId: segment['Segment ID'],
+          segmentName: segment['Segment Name'],
+          taxonomyPath: segment['Taxonomy > Parent Path'],
+          description: segment['Description'] || '',
+          confidence: Math.max(0.3, 1 - (index * 0.1)),
+          reasoning: `Keyword match for "${userDescription}"`,
+          matchScore: Math.max(30, 100 - (index * 10))
+        }));
+      
+      return keywordMatches;
+    }
+
     console.log('📝 Generated user input embedding');
 
     // Step 2: Perform vector search to find top matches
@@ -389,75 +423,6 @@ CRITICAL INSTRUCTIONS:
         { role: 'user', content: prompt }
       ], { currentPage: 'audience-builder' });
 
-      console.log('🤖 AI Validation Response:', response);
-
-      // Parse the JSON response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No valid JSON found in AI response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      if (!parsed.validated_recommendations || !Array.isArray(parsed.validated_recommendations)) {
-        throw new Error('Invalid response format from AI');
-      }
-
-      return parsed.validated_recommendations.map((rec: any) => ({
-        segmentId: rec.segmentId,
-        segmentName: rec.segmentName,
-        taxonomyPath: rec.taxonomyPath,
-        description: rec.description,
-        confidence: Math.min(rec.confidence / 100, 1),
-        reasoning: rec.reasoning,
-        matchScore: rec.matchScore
-      }));
-
-    } catch (error) {
-      console.error('❌ Error in AI validation:', error);
-      throw error;
-    }
-  }
-
-  async getSegmentDetails(segmentId: string): Promise<any> {
-    if (this.segmentCache.has(segmentId)) {
-      return this.segmentCache.get(segmentId);
-    }
-
-    const segment = this.experianSegments.find(s => s['Segment ID'] === segmentId);
-    if (segment) {
-      this.segmentCache.set(segmentId, segment);
-      return segment;
-    }
-
-    return null;
-  }
-
-  async getAllSegments(): Promise<ExperianSegment[]> {
-    await this.initialize();
-    return this.experianSegments;
-  }
-
-  async searchSegments(query: string): Promise<ExperianSegment[]> {
-    await this.initialize();
-    const lowerQuery = query.toLowerCase();
-    
-    return this.experianSegments.filter(segment => 
-      segment['Segment Name'].toLowerCase().includes(lowerQuery) ||
-      segment['Taxonomy > Parent Path'].toLowerCase().includes(lowerQuery) ||
-      (segment['Description'] && segment['Description'].toLowerCase().includes(lowerQuery))
-    );
-  }
-
-  async getSegmentsByCategory(category: string): Promise<ExperianSegment[]> {
-    await this.initialize();
-    const lowerCategory = category.toLowerCase();
-    
-    return this.experianSegments.filter(segment => 
-      segment['Taxonomy > Parent Path'].toLowerCase().includes(lowerCategory)
-    );
-  }
-} 
       console.log('🤖 AI Validation Response:', response);
 
       // Parse the JSON response

@@ -126,6 +126,164 @@ Based on this analysis, provide a detailed, helpful response to the user's query
     return await this.callOpenAI(detailedMessages, context);
   }
 
+  protected async processWithChainOfThought(
+    message: string, 
+    context: AgentContext, 
+    history: AgentMessage[],
+    systemPrompt: string
+  ): Promise<string> {
+    // Step 1: Query Analysis and Planning
+    const planningPrompt = `You are ${this.name}. Analyze this user query step by step:
+
+USER QUERY: "${message}"
+CONTEXT: ${JSON.stringify(context, null, 2)}
+
+THINKING PROCESS:
+1. What is the user actually asking for?
+2. What data or information do I need to answer this?
+3. What steps should I take to provide a helpful response?
+4. What potential misunderstandings should I avoid?
+
+Provide your analysis in this format:
+ANALYSIS: [Your step-by-step analysis]
+DATA_NEEDED: [List of specific data points needed]
+APPROACH: [Your planned approach to answer]
+CONCERNS: [Any potential issues or edge cases]`;
+
+    const planningMessages = [
+      { role: 'system', content: planningPrompt },
+      ...history.slice(-5).map(msg => ({ role: msg.role, content: msg.content }))
+    ];
+
+    const planning = await this.callOpenAI(planningMessages, context);
+
+    // Step 2: Data Gathering (if needed)
+    let dataContext = '';
+    if (planning.includes('DATA_NEEDED')) {
+      dataContext = await this.gatherRelevantData(message, context, planning);
+    }
+
+    // Step 3: Structured Response Generation
+    const responsePrompt = `${systemPrompt}
+
+PLANNING ANALYSIS:
+${planning}
+
+${dataContext ? `RELEVANT DATA:\n${dataContext}\n` : ''}
+
+Based on the planning analysis above, provide a structured response:
+
+1. **Direct Answer**: Address the user's question directly
+2. **Supporting Evidence**: Use the data and analysis to support your answer
+3. **Actionable Insights**: Provide specific, actionable recommendations
+4. **Next Steps**: Suggest what the user should do next
+
+Keep your response focused, accurate, and helpful. If you're unsure about something, acknowledge the uncertainty.`;
+
+    const responseMessages = [
+      { role: 'system', content: responsePrompt },
+      ...history.slice(-3).map(msg => ({ role: msg.role, content: msg.content })),
+      { role: 'user', content: message }
+    ];
+
+    return await this.callOpenAI(responseMessages, context);
+  }
+
+  protected async gatherRelevantData(message: string, context: AgentContext, planning: string): Promise<string> {
+    // This method should be overridden by specific agents to gather relevant data
+    return '';
+  }
+
+  protected async classifyQuery(message: string, context: AgentContext): Promise<{
+    intent: string;
+    confidence: number;
+    requiresData: boolean;
+    complexity: 'simple' | 'moderate' | 'complex';
+    potentialIssues: string[];
+  }> {
+    const classificationPrompt = `Classify this user query for a LightBoxTV analytics platform:
+
+QUERY: "${message}"
+CONTEXT: ${JSON.stringify(context, null, 2)}
+
+Provide classification in JSON format:
+{
+  "intent": "what the user is trying to accomplish",
+  "confidence": 0.0-1.0,
+  "requiresData": true/false,
+  "complexity": "simple|moderate|complex",
+  "potentialIssues": ["list of potential problems or misunderstandings"]
+}
+
+Focus on:
+- Is this a data request, analysis request, or general question?
+- Does it require specific data from the platform?
+- How complex is the reasoning required?
+- What could go wrong in understanding this query?`;
+
+    const classificationMessages = [
+      { role: 'system', content: classificationPrompt },
+      { role: 'user', content: message }
+    ];
+
+    try {
+      const response = await this.callOpenAI(classificationMessages, context);
+      const classification = JSON.parse(response);
+      return classification;
+    } catch (error) {
+      console.error('Query classification failed:', error);
+      return {
+        intent: 'general_question',
+        confidence: 0.5,
+        requiresData: false,
+        complexity: 'simple',
+        potentialIssues: ['Unable to classify query']
+      };
+    }
+  }
+
+  protected async validateResponse(response: string, originalQuery: string): Promise<{
+    isValid: boolean;
+    issues: string[];
+    suggestedImprovements: string[];
+  }> {
+    const validationPrompt = `Validate this AI response for a user query:
+
+ORIGINAL QUERY: "${originalQuery}"
+AI RESPONSE: "${response}"
+
+Evaluate the response and provide feedback in JSON format:
+{
+  "isValid": true/false,
+  "issues": ["list of problems with the response"],
+  "suggestedImprovements": ["how to improve the response"]
+}
+
+Check for:
+- Does it actually answer the user's question?
+- Is it factually accurate and relevant?
+- Is it actionable and helpful?
+- Does it avoid generic or vague statements?
+- Is it appropriate for the LightBoxTV context?`;
+
+    const validationMessages = [
+      { role: 'system', content: validationPrompt },
+      { role: 'user', content: `Query: "${originalQuery}"\nResponse: "${response}"` }
+    ];
+
+    try {
+      const validation = await this.callOpenAI(validationMessages, {});
+      return JSON.parse(validation);
+    } catch (error) {
+      console.error('Response validation failed:', error);
+      return {
+        isValid: true,
+        issues: [],
+        suggestedImprovements: []
+      };
+    }
+  }
+
   protected createSystemPrompt(context: AgentContext): string {
     return `You are ${this.name}, a specialized AI agent for LightBoxTV. 
 

@@ -64,43 +64,140 @@ export class AnalyticsAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Determine what type of analysis is needed
+      // Step 1: Classify the query
+      const classification = await this.classifyQuery(message, context);
+      console.log('Query classification:', classification);
+
+      // Step 2: Handle low-confidence queries
+      if (classification.confidence < 0.3) {
+        return {
+          content: "I'm not entirely sure what you're asking for. Could you please rephrase your question or provide more context? For example, you could ask about specific campaigns, metrics, or time periods.",
+          confidence: classification.confidence,
+          agentId: 'analytics',
+          agentName: 'Analytics Agent',
+          suggestions: [
+            'Ask about campaign performance',
+            'Request specific metrics',
+            'Mention a time period',
+            'Reference specific campaigns'
+          ],
+          nextActions: []
+        };
+      }
+
+      // Step 3: Use Chain-of-Thought processing for complex queries
+      if (classification.complexity === 'complex' || classification.requiresData) {
+        const systemPrompt = this.createSystemPrompt(context);
+        const response = await this.processWithChainOfThought(message, context, history, systemPrompt);
+        
+        // Step 4: Validate the response
+        const validation = await this.validateResponse(response, message);
+        if (!validation.isValid) {
+          console.warn('Response validation failed:', validation.issues);
+          // Try to improve the response
+          const improvedResponse = await this.improveResponse(response, message, validation.suggestedImprovements);
+          return this.createResponse(improvedResponse, classification.confidence);
+        }
+
+        return this.createResponse(response, classification.confidence);
+      }
+
+      // Step 5: Use simpler processing for straightforward queries
       const analysisType = this.determineAnalysisType(message);
-      
-      // Get relevant data based on analysis type
       const data = await this.getRelevantData(analysisType, context);
-      
-      // Create system prompt with real data context
       const systemPrompt = this.createSystemPrompt(context, data);
-      
-      // Use two-call approach for better responses
       const response = await this.processWithTwoCalls(message, context, history, systemPrompt);
 
-      return {
-        content: response,
-        confidence: 0.9,
-        agentId: 'analytics',
-        agentName: 'Analytics Agent',
-        suggestions: [
-          'Ask about specific campaign performance',
-          'Request geographic distribution analysis',
-          'Get inventory performance insights',
-          'Compare metrics across time periods'
-        ],
-        nextActions: [
-          'View detailed analytics dashboard',
-          'Export performance report',
-          'Set up alerts for key metrics'
-        ]
-      };
+      return this.createResponse(response, classification.confidence);
     } catch (error) {
       console.error('Analytics Agent error:', error);
       return {
         content: "I apologize, but I encountered an error while processing your analytics request. Please try again or contact support if the issue persists.",
         confidence: 0.1,
         agentId: 'analytics',
-        agentName: 'Analytics Agent'
+        agentName: 'Analytics Agent',
+        suggestions: [
+          'Try rephrasing your question',
+          'Ask about specific campaigns or metrics',
+          'Check if you have the necessary permissions'
+        ],
+        nextActions: []
       };
+    }
+  }
+
+  private createResponse(content: string, confidence: number): AgentResponse {
+    return {
+      content,
+      confidence,
+      agentId: 'analytics',
+      agentName: 'Analytics Agent',
+      suggestions: [
+        'Ask about specific campaign performance',
+        'Request geographic distribution analysis',
+        'Get inventory performance insights',
+        'Compare metrics across time periods'
+      ],
+      nextActions: [
+        'View detailed analytics dashboard',
+        'Export performance report',
+        'Set up alerts for key metrics'
+      ]
+    };
+  }
+
+  protected async gatherRelevantData(message: string, context: AgentContext, planning: string): Promise<string> {
+    try {
+      // Extract data requirements from planning
+      const dataNeeded = planning.includes('DATA_NEEDED') 
+        ? planning.split('DATA_NEEDED:')[1]?.split('\n')[0] || ''
+        : '';
+
+      // Gather data based on requirements
+      const data: any = {};
+      
+      if (dataNeeded.includes('campaign') || dataNeeded.includes('performance')) {
+        data.campaignPerformance = await this.getCampaignPerformanceData(context.organizationId || '');
+      }
+      
+      if (dataNeeded.includes('geographic') || dataNeeded.includes('location')) {
+        data.geographic = await this.getGeographicData(context.organizationId || '');
+      }
+      
+      if (dataNeeded.includes('inventory') || dataNeeded.includes('publisher')) {
+        data.inventory = await this.getInventoryData(context.organizationId || '');
+      }
+      
+      if (dataNeeded.includes('trend') || dataNeeded.includes('time')) {
+        data.trends = await this.getTrendData(context.organizationId || '');
+      }
+
+      return this.formatDataContext(data);
+    } catch (error) {
+      console.error('Error gathering relevant data:', error);
+      return 'Unable to gather relevant data at this time.';
+    }
+  }
+
+  private async improveResponse(response: string, originalQuery: string, suggestions: string[]): Promise<string> {
+    const improvementPrompt = `Improve this AI response based on the feedback:
+
+ORIGINAL QUERY: "${originalQuery}"
+CURRENT RESPONSE: "${response}"
+IMPROVEMENT SUGGESTIONS: ${suggestions.join(', ')}
+
+Provide an improved response that addresses the issues while maintaining accuracy and helpfulness.`;
+
+    const improvementMessages = [
+      { role: 'system', content: improvementPrompt },
+      { role: 'user', content: `Query: "${originalQuery}"\nResponse: "${response}"` }
+    ];
+
+    try {
+      return await this.callOpenAI(improvementMessages, {});
+    } catch (error) {
+      console.error('Response improvement failed:', error);
+      return response; // Return original response if improvement fails
     }
   }
 

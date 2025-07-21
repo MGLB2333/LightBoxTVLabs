@@ -211,6 +211,23 @@ export const youtubeDB = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('Adding channel to package:', { packageId, channelId, userId: user.id });
+
+    // First verify that the package exists and belongs to the user
+    const { data: packageData, error: packageError } = await supabase
+      .from('youtube_curated_packages')
+      .select('id, name, user_id')
+      .eq('id', packageId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (packageError || !packageData) {
+      console.error('Package verification failed:', packageError);
+      throw new Error('Package not found or access denied');
+    }
+
+    console.log('Package verified:', packageData);
+
     const { error } = await supabase
       .from('youtube_package_channels')
       .insert({
@@ -220,7 +237,16 @@ export const youtubeDB = {
         notes
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error adding channel to package:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw error;
+    }
   },
 
   async removeChannelFromPackage(packageId: string, channelId: string) {

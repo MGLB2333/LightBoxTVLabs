@@ -237,26 +237,48 @@ export const youtubeDB = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Get user's organization
-    const { data: orgData } = await supabase
-      .from('organization_members')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's organization (optional)
+    let organizationId = null;
+    try {
+      const { data: orgData } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+      organizationId = orgData?.organization_id || null;
+    } catch (error) {
+      // User doesn't have an organization, which is fine
+      console.log('User has no organization, creating package without org_id');
+    }
+
+    const insertData: any = {
+      name,
+      description,
+      user_id: user.id,
+      is_public: isPublic
+    };
+
+    // Only include organization_id if it exists
+    if (organizationId) {
+      insertData.organization_id = organizationId;
+    }
 
     const { data, error } = await supabase
       .from('youtube_curated_packages')
-      .insert({
-        name,
-        description,
-        user_id: user.id,
-        organization_id: orgData?.organization_id,
-        is_public: isPublic
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating package:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw error;
+    }
     return data;
   },
 

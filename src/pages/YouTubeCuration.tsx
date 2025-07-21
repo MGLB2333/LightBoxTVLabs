@@ -129,7 +129,12 @@ const YouTubeCuration: React.FC = () => {
     try {
       const userPackages = await youtubeDB.getUserPackages();
       const publicPackages = await youtubeDB.getPublicPackages();
-      setPackages([...userPackages, ...publicPackages]);
+      
+      // Filter out duplicates - if a user package is also public, don't include it twice
+      const userPackageIds = new Set(userPackages.map(pkg => pkg.id));
+      const uniquePublicPackages = publicPackages.filter(pkg => !userPackageIds.has(pkg.id));
+      
+      setPackages([...userPackages, ...uniquePublicPackages]);
     } catch (error) {
       console.error('Error loading packages:', error);
     }

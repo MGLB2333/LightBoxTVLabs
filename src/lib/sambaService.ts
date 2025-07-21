@@ -105,7 +105,17 @@ export class SambaService {
 
     if (error) throw error;
 
-    const networkMap = new Map<string, NetworkStats>();
+    // Create a temporary interface for the intermediate state
+    interface TempNetworkStats {
+      network: string;
+      spot_count: number;
+      total_duration: number;
+      unique_advertisers: Set<string>;
+      unique_brands: Set<string>;
+      avg_duration: number;
+    }
+
+    const networkMap = new Map<string, TempNetworkStats>();
     
     data?.forEach(spot => {
       if (!spot.network) return;

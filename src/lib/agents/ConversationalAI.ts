@@ -133,6 +133,7 @@ export class ConversationalAI extends BaseAgent {
 
   private updateMemory(memory: ConversationMemory, message: string, context: AgentContext) {
     memory.messages.push({
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
       content: message,
       timestamp: new Date()
@@ -384,9 +385,12 @@ Generate a helpful response that:
 
   private updateMemoryWithResponse(memory: ConversationMemory, response: AgentResponse) {
     memory.messages.push({
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       role: 'assistant',
       content: response.content,
-      timestamp: new Date().toISOString()
+      timestamp: new Date(),
+      agentId: response.agentId,
+      agentName: response.agentName
     });
     
     memory.context.followUpQuestions = response.suggestions || [];

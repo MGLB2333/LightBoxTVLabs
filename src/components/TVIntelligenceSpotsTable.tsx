@@ -43,6 +43,11 @@ const TVIntelligenceSpotsTable: React.FC<TVIntelligenceSpotsTableProps> = ({ spo
       const aValue = a[sortField];
       const bValue = b[sortField];
       
+      // Handle undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+      
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;

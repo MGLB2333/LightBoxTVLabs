@@ -14,6 +14,10 @@ const tabs = [
 
 const ROWS_PER_PAGE = 25;
 
+type ActionType = 
+  | { label: string; icon: any; action: string; disabled?: never; tooltip?: never; }
+  | { label: string; icon: any; disabled: boolean; tooltip: string; action?: never; };
+
 // Mock data for each tab - updated to match Supabase structure with variance
 const mockCampaignSummary = [
   { Campaign: 'Summer Launch', Metric: 'Total Spots', Planned: 120, Delivered: 118, Variance: '-1.7%' },
@@ -255,7 +259,7 @@ const TVDeliveryMonitor: React.FC = () => {
         item.Metric && !item.Channel && !item.Week
       );
       
-      const alerts = [];
+      const alerts: string[] = [];
       summaryData.forEach(item => {
         if (item.Variance) {
           const variance = parseFloat(item.Variance.replace('%', ''));
@@ -583,8 +587,8 @@ const TVDeliveryMonitor: React.FC = () => {
   }, [openDropdown]);
 
   // Analyze row performance and determine available actions
-  const getRowActions = (row: any) => {
-    const actions = [];
+  const getRowActions = (row: any): ActionType[] => {
+    const actions: ActionType[] = [];
     
     // Check if we have planned data
     const hasPlannedData = row.Planned || row['Planned Spots'] || row['Planned Impacts'];
@@ -765,16 +769,18 @@ const TVDeliveryMonitor: React.FC = () => {
                 <button
                   key={actionIndex}
                   className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors ${
-                    action.disabled ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700'
+                    'disabled' in action && action.disabled ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700'
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!action.disabled) {
-                      handleActionClick(action.action, row);
+                    if (!('disabled' in action) || !action.disabled) {
+                      if ('action' in action && action.action) {
+                        handleActionClick(action.action, row);
+                      }
                     }
                   }}
-                  disabled={action.disabled}
-                  title={action.tooltip}
+                  disabled={'disabled' in action ? action.disabled : false}
+                  title={'tooltip' in action ? action.tooltip : ''}
                 >
                   <IconComponent className="w-4 h-4" />
                   {action.label}

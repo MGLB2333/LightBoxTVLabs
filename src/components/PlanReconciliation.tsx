@@ -197,7 +197,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
     setEditingPlans(prev => prev.map(plan => {
       if (plan.id === planId) {
         // Handle numeric fields
-        if (['budget', 'plan_tvr', 'deal_tvr', 'plan_value', 'cpt', 'sec'].includes(field)) {
+        if (['budget', 'plan_tvr', 'deal_tvr', 'plan_value', 'cpt'].includes(field)) {
           const numValue = value === '' ? null : parseFloat(value);
           return { ...plan, [field]: numValue };
         }
@@ -225,7 +225,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
       deal_tvr: undefined,
       plan_value: undefined,
       cpt: undefined,
-      sec: undefined,
+
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       actual_tvr: 0,
@@ -270,8 +270,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
             plan_tvr: plan.plan_tvr,
             deal_tvr: plan.deal_tvr,
             plan_value: plan.plan_value,
-            cpt: plan.cpt,
-            sec: plan.sec
+            cpt: plan.cpt
           });
         } else if (originalPlan && (
           originalPlan.supplier_name !== plan.supplier_name ||

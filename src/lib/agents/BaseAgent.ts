@@ -668,7 +668,7 @@ youtube_curated_packages:
             return this.formatSQLResults(result.data, userQuery);
           }
         } catch (error) {
-          console.log('Approach failed, trying next:', error.message);
+          console.log('Approach failed, trying next:', error instanceof Error ? error.message : String(error));
           continue;
         }
       }

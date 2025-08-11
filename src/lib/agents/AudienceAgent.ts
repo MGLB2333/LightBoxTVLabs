@@ -124,7 +124,7 @@ export class AudienceAgent extends BaseAgent {
 
       // Step 3: Determine analysis type and gather data
       const analysisType = this.determineAnalysisType(message);
-      const data = await this.getRelevantData(analysisType, context);
+      const data = await this.gatherRelevantData(analysisType, context);
       
       if (!data || Object.keys(data).length === 0) {
         return {
@@ -138,7 +138,7 @@ export class AudienceAgent extends BaseAgent {
       }
 
       // Step 4: Generate response using iterative reasoning
-      const systemPrompt = this.createSystemPrompt(context, data);
+      const systemPrompt = this.createSystemPrompt(context);
       const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
 
       // ✅ Format response with human-like touches
@@ -512,5 +512,46 @@ CRITICAL INSTRUCTIONS:
     return this.experianSegments.filter(segment => 
       segment['Taxonomy > Parent Path'].toLowerCase().includes(lowerCategory)
     );
+  }
+
+  private determineAnalysisType(message: string): string {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('recommend') || lowerMessage.includes('suggest') || lowerMessage.includes('find')) {
+      return 'recommendation';
+    } else if (lowerMessage.includes('explain') || lowerMessage.includes('what is') || lowerMessage.includes('analyze')) {
+      return 'analysis';
+    } else if (lowerMessage.includes('segment') && (lowerMessage.includes('list') || lowerMessage.includes('show'))) {
+      return 'list';
+    }
+    
+    return 'general';
+  }
+
+  protected async gatherRelevantData(analysisType: string, context: AgentContext): Promise<any> {
+    await this.initialize();
+    
+    switch (analysisType) {
+      case 'recommendation':
+        return {
+          segments: this.experianSegments.slice(0, 50), // Limit for performance
+          type: 'recommendation'
+        };
+      case 'analysis':
+        return {
+          segments: this.experianSegments,
+          type: 'analysis'
+        };
+      case 'list':
+        return {
+          segments: this.experianSegments,
+          type: 'list'
+        };
+      default:
+        return {
+          segments: this.experianSegments.slice(0, 20),
+          type: 'general'
+        };
+    }
   }
 } 

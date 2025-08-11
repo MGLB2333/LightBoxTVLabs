@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Link, useLocation, NavLink } from 'react-router-dom'
-import { BarChart3, Users, Settings, ChevronDown, Youtube, Tv, Bot, Book, Target, TrendingUp } from 'lucide-react'
+import { BarChart3, Users, Settings, ChevronDown, Youtube, Tv, Bot, Book, Target, TrendingUp, Monitor, Database } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { name: 'Audience Builder', icon: Target, href: '/audience-builder' },
   { name: 'YouTube Curation', icon: Youtube, href: '/youtube-curation' },
   { name: 'TV Intelligence', icon: Tv, href: '/tv-intelligence' },
+  { name: 'TV Spot Analysis', icon: Database, href: '/barb-data-puller' },
   { name: 'Incremental Reach', icon: TrendingUp, href: '/incremental-reach' },
 ]
 
@@ -221,7 +222,7 @@ const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col sticky top-14">
+    <aside className="w-56 bg-white border-r border-gray-200 h-screen flex flex-col sticky top-14">
       <nav className="flex-1 px-4 py-6 overflow-y-auto">
         <ul className="space-y-2">
           {navItems.map((item) => {

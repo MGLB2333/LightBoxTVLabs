@@ -84,54 +84,78 @@ export class TVIntelligenceAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Analyze the request and determine what data is needed
-      const analysisType = await this.analyzeRequest(message);
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
       
-      // Step 2: Check if we have enough information
-      if (!this.hasEnoughInfo(analysisType)) {
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: this.generateClarificationQuestion(analysisType),
-          confidence: 0.3,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'tv-intelligence',
           agentName: 'TV Intelligence Agent',
           suggestions: [
-            'Specify the time period you want to analyze',
-            'Mention specific shows or channels',
-            'Indicate your target audience or demographics',
-            'Specify what type of analysis you need'
-          ]
+            'Ask about TV shows',
+            'Request viewing insights',
+            'Get brand visibility data'
+          ],
+          nextActions: []
         };
       }
 
-      // Step 3: Gather relevant data
-      const data = await this.gatherData(analysisType, context);
+      // 🗃️ Step 2: Validate query
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'tv'),
+          confidence: 0.1,
+          agentId: 'tv-intelligence',
+          agentName: 'TV Intelligence Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific shows'],
+          nextActions: []
+        };
+      }
+
+      // Step 3: Generate response using iterative reasoning
+      const systemPrompt = this.createSystemPrompt(context);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
       
-      // Step 4: Perform analysis and generate insights
-      const insights = await this.analyzeData(data, analysisType);
-      
-      // Step 5: Format response based on the specific query type
-      const response = this.formatContextualResponse(insights, analysisType, message);
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
 
       return {
-        content: response,
-        confidence: 0.9,
+        content: finalResponse,
+        confidence: analysis.confidence,
         agentId: 'tv-intelligence',
         agentName: 'TV Intelligence Agent',
-        data: insights,
         suggestions: [
-          'Get detailed show performance metrics',
-          'Analyze brand visibility trends',
-          'Compare channel performance',
-          'Export viewing analysis report'
-        ]
+          'Ask about TV performance',
+          'Request viewing insights',
+          'Get brand visibility data',
+          'Analyze show performance'
+        ],
+        nextActions: []
       };
     } catch (error) {
       console.error('TV Intelligence Agent error:', error);
       return {
-        content: "I encountered an error while analyzing TV data. Please try again or contact support if the issue persists.",
+        content: this.conversationHelper.generateFallbackResponse(message, 'tv'),
         confidence: 0.1,
         agentId: 'tv-intelligence',
-        agentName: 'TV Intelligence Agent'
+        agentName: 'TV Intelligence Agent',
+        suggestions: ['Try rephrasing your question', 'Ask about specific shows'],
+        nextActions: []
       };
     }
   }

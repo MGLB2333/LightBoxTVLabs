@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSetBanner } from '../components/layout/BannerContext';
+import { useNavigate } from 'react-router-dom';
 import { Plus, MoreVertical, Edit, Trash2, Copy, Eye } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -97,6 +98,7 @@ const Campaigns: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<Campaign>>({});
   const [saving, setSaving] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -252,7 +254,14 @@ const Campaigns: React.FC = () => {
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">No campaigns found.</td></tr>
               ) : filteredCampaigns.map(c => (
                 <tr key={c.id} className="hover:bg-gray-50 group">
-                  <td className="px-6 py-4 font-medium text-gray-900">{c.name}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">
+                    <button 
+                      onClick={() => navigate(`/analytics-insights/overview?campaign=${c.id}`)}
+                      className="text-left hover:underline cursor-pointer"
+                    >
+                      {c.name}
+                    </button>
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${statusColors[c.status] || 'bg-gray-100 text-gray-600'}`}>
                       {c.status?.charAt(0).toUpperCase() + c.status?.slice(1)}
@@ -306,7 +315,13 @@ const Campaigns: React.FC = () => {
             <Edit className="w-4 h-4 mr-2" />
             Edit Campaign
           </button>
-          <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+          <button 
+            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            onClick={() => {
+              const campaign = campaigns.find(c => c.id === openMenu);
+              if (campaign) navigate(`/analytics-insights/overview?campaign=${campaign.id}`);
+            }}
+          >
             <Eye className="w-4 h-4 mr-2" />
             View Details
           </button>

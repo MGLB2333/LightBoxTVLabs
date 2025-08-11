@@ -64,63 +64,92 @@ export class AnalyticsAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Classify the query
-      const classification = await this.classifyQuery(message, context);
-      console.log('Query classification:', classification);
-
-      // Step 2: Handle low-confidence queries
-      if (classification.confidence < 0.3) {
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
+      
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: "I'm not entirely sure what you're asking for. Could you please rephrase your question or provide more context? For example, you could ask about specific campaigns, metrics, or time periods.",
-          confidence: classification.confidence,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'analytics',
           agentName: 'Analytics Agent',
           suggestions: [
-            'Ask about campaign performance',
-            'Request specific metrics',
-            'Mention a time period',
-            'Reference specific campaigns'
+            'Ask about specific metrics',
+            'Request performance insights',
+            'Get trend analysis'
           ],
           nextActions: []
         };
       }
 
-      // Step 3: Use Chain-of-Thought processing for complex queries
-      if (classification.complexity === 'complex' || classification.requiresData) {
-        const systemPrompt = this.createSystemPrompt(context);
-        const response = await this.processWithChainOfThought(message, context, history, systemPrompt);
-        
-        // Step 4: Validate the response
-        const validation = await this.validateResponse(response, message);
-        if (!validation.isValid) {
-          console.warn('Response validation failed:', validation.issues);
-          // Try to improve the response
-          const improvedResponse = await this.improveResponse(response, message, validation.suggestedImprovements);
-          return this.createResponse(improvedResponse, classification.confidence);
-        }
-
-        return this.createResponse(response, classification.confidence);
+      // 🗃️ Step 2: Validate query and map to schema
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'analytics'),
+          confidence: 0.1,
+          agentId: 'analytics',
+          agentName: 'Analytics Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific metrics'],
+          nextActions: []
+        };
       }
 
-      // Step 5: Use simpler processing for straightforward queries
+      // Step 3: Determine analysis type and gather data
       const analysisType = this.determineAnalysisType(message);
       const data = await this.getRelevantData(analysisType, context);
-      const systemPrompt = this.createSystemPrompt(context, data);
-      const response = await this.processWithTwoCalls(message, context, history, systemPrompt);
+      
+      if (!data || Object.keys(data).length === 0) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'analytics'),
+          confidence: 0.1,
+          agentId: 'analytics',
+          agentName: 'Analytics Agent',
+          suggestions: ['Check your dashboard', 'Set up analytics tracking'],
+          nextActions: []
+        };
+      }
 
-      return this.createResponse(response, classification.confidence);
-    } catch (error) {
-      console.error('Analytics Agent error:', error);
+      // Step 4: Generate response using iterative reasoning
+      const systemPrompt = this.createSystemPrompt(context, data);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
+      
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
+
       return {
-        content: "I apologize, but I encountered an error while processing your analytics request. Please try again or contact support if the issue persists.",
-        confidence: 0.1,
+        content: finalResponse,
+        confidence: analysis.confidence,
         agentId: 'analytics',
         agentName: 'Analytics Agent',
         suggestions: [
-          'Try rephrasing your question',
-          'Ask about specific campaigns or metrics',
-          'Check if you have the necessary permissions'
+          'Ask about performance trends',
+          'Request geographic insights',
+          'Get audience analysis',
+          'Compare metrics over time'
         ],
+        nextActions: []
+      };
+    } catch (error) {
+      console.error('Analytics Agent error:', error);
+      return {
+        content: this.conversationHelper.generateFallbackResponse(message, 'analytics'),
+        confidence: 0.1,
+        agentId: 'analytics',
+        agentName: 'Analytics Agent',
+        suggestions: ['Try rephrasing your question', 'Check your analytics dashboard'],
         nextActions: []
       };
     }
@@ -439,5 +468,21 @@ Provide brief, data-driven responses based on the LightBoxTV analytics data.`;
     }
 
     return context;
+  }
+
+  private isComplexAnalyticsQuery(message: string): boolean {
+    const analyticsQueryKeywords = [
+      'performance', 'metrics', 'kpi', 'analytics', 'data', 'insights', 'trends',
+      'impressions', 'clicks', 'conversions', 'roi', 'cpm', 'ctr', 'completion',
+      'compare', 'analysis', 'report', 'statistics', 'spend', 'revenue',
+      'how many', 'count', 'sum', 'average', 'total', 'aggregate',
+      'top', 'best', 'worst', 'highest', 'lowest', 'ranking',
+      'geographic', 'location', 'postcode', 'area', 'region',
+      'time', 'period', 'date', 'week', 'month', 'year',
+      'trend', 'growth', 'decline', 'change', 'improvement'
+    ];
+    
+    const lowerMessage = message.toLowerCase();
+    return analyticsQueryKeywords.some(keyword => lowerMessage.includes(keyword));
   }
 } 

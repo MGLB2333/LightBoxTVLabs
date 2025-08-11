@@ -83,51 +83,78 @@ export class YouTubeCurationAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Analyze the request and determine search criteria
-      const searchCriteria = await this.analyzeRequest(message);
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
       
-      // Step 2: Check if we have enough information
-      if (!this.hasEnoughInfo(searchCriteria)) {
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: this.generateClarificationQuestion(searchCriteria),
-          confidence: 0.3,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'youtube-curation',
           agentName: 'YouTube Curation Agent',
           suggestions: [
-            'Specify the topic or theme you\'re interested in',
-            'Mention your target audience or demographics',
-            'Indicate the type of content (channels vs videos)',
-            'Specify location or language preferences'
-          ]
+            'Ask about specific channels',
+            'Request content discovery',
+            'Get creator insights'
+          ],
+          nextActions: []
         };
       }
 
-      // Step 3: Perform the search
-      const results = await this.performSearch(searchCriteria);
+      // 🗃️ Step 2: Validate query
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'youtube'),
+          confidence: 0.1,
+          agentId: 'youtube-curation',
+          agentName: 'YouTube Curation Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific channels'],
+          nextActions: []
+        };
+      }
+
+      // Step 3: Generate response using iterative reasoning
+      const systemPrompt = this.createSystemPrompt(context);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
       
-      // Step 4: Format and return results
-      const formattedResponse = this.formatResults(results, searchCriteria);
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
 
       return {
-        content: formattedResponse,
-        confidence: 0.9,
+        content: finalResponse,
+        confidence: analysis.confidence,
         agentId: 'youtube-curation',
         agentName: 'YouTube Curation Agent',
-        data: results,
         suggestions: [
-          'Get more details about specific channels',
-          'Find similar content creators',
-          'Analyze audience demographics',
-          'Export results to campaign planner'
-        ]
+          'Ask about channel discovery',
+          'Request content analysis',
+          'Get creator recommendations',
+          'Explore trending content'
+        ],
+        nextActions: []
       };
     } catch (error) {
       console.error('YouTube Curation Agent error:', error);
       return {
-        content: "I encountered an error while searching YouTube content. Please check your API key and try again.",
+        content: this.conversationHelper.generateFallbackResponse(message, 'youtube'),
         confidence: 0.1,
         agentId: 'youtube-curation',
-        agentName: 'YouTube Curation Agent'
+        agentName: 'YouTube Curation Agent',
+        suggestions: ['Try rephrasing your question', 'Ask about specific channels'],
+        nextActions: []
       };
     }
   }

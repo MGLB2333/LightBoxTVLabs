@@ -81,85 +81,77 @@ export class IncrementalReachAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Classify the query using our new method
-      const classification = await this.classifyQuery(message, context);
-      console.log('Incremental Reach Agent - Query classification:', classification);
-
-      // Step 2: Handle simple queries that don't need incremental reach analysis
-      if (this.isSimpleCampaignQuery(message)) {
-        return await this.handleSimpleCampaignQuery(message, context);
-      }
-
-      // Step 3: Handle low-confidence queries
-      if (classification.confidence < 0.3) {
-        return {
-          content: "I'm not entirely sure what you're asking about incremental reach. Could you please rephrase your question? For example, you could ask about specific campaigns, geographic areas, or time periods for incremental reach analysis.",
-          confidence: classification.confidence,
-          agentId: 'incremental-reach',
-          agentName: 'Incremental Reach Agent',
-          suggestions: [
-            'Ask about incremental reach for specific campaigns',
-            'Request geographic incremental reach analysis',
-            'Compare CTV vs linear incremental reach',
-            'Ask about time period incremental reach'
-          ],
-          nextActions: []
-        };
-      }
-
-      // Step 4: Use Chain-of-Thought processing for complex incremental reach queries
-      if (classification.complexity === 'complex' || classification.requiresData) {
-        const systemPrompt = this.createSystemPrompt(context);
-        const response = await this.processWithChainOfThought(message, context, history, systemPrompt);
-        
-        // Step 5: Validate the response
-        const validation = await this.validateResponse(response, message);
-        if (!validation.isValid) {
-          console.warn('Response validation failed:', validation.issues);
-          const improvedResponse = await this.improveResponse(response, message, validation.suggestedImprovements);
-          return this.createResponse(improvedResponse, classification.confidence);
-        }
-
-        return this.createResponse(response, classification.confidence);
-      }
-
-      // Step 6: Use legacy processing for moderate queries (fallback)
-      const analysisParams = await this.analyzeRequest(message);
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
       
-      if (!this.hasEnoughInfo(analysisParams)) {
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: this.generateClarificationQuestion(analysisParams),
-          confidence: 0.3,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'incremental-reach',
           agentName: 'Incremental Reach Agent',
           suggestions: [
-            'Specify which campaigns you want to compare',
-            'Mention the time period for analysis',
-            'Indicate geographic areas of interest',
-            'Specify the type of media (CTV, linear, digital)'
+            'Ask about reach analysis',
+            'Request geographic insights',
+            'Get incremental data'
           ],
           nextActions: []
         };
       }
 
-      const data = await this.gatherData(analysisParams, context);
-      const incrementalData = await this.calculateIncrementalReach(data, analysisParams);
-      const insights = this.generateInsights(incrementalData, analysisParams);
-      const response = this.formatResponse(insights, analysisParams);
+      // 🗃️ Step 2: Validate query
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'reach'),
+          confidence: 0.1,
+          agentId: 'incremental-reach',
+          agentName: 'Incremental Reach Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific areas'],
+          nextActions: []
+        };
+      }
 
-      return this.createResponse(response, classification.confidence);
-    } catch (error) {
-      console.error('Incremental Reach Agent error:', error);
+      // Step 3: Generate response using iterative reasoning
+      const systemPrompt = this.createSystemPrompt(context);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
+      
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
+
       return {
-        content: "I apologize, but I encountered an error while processing your incremental reach request. Please try again or contact support if the issue persists.",
-        confidence: 0.1,
+        content: finalResponse,
+        confidence: analysis.confidence,
         agentId: 'incremental-reach',
         agentName: 'Incremental Reach Agent',
         suggestions: [
-          'Try rephrasing your question',
-          'Ask about specific campaigns or time periods',
-          'Check if you have the necessary permissions'
+          'Ask about reach analysis',
+          'Request geographic insights',
+          'Get incremental data',
+          'Compare reach performance'
         ],
+        nextActions: []
+      };
+    } catch (error) {
+      console.error('Incremental Reach Agent error:', error);
+      return {
+        content: this.conversationHelper.generateFallbackResponse(message, 'reach'),
+        confidence: 0.1,
+        agentId: 'incremental-reach',
+        agentName: 'Incremental Reach Agent',
+        suggestions: ['Try rephrasing your question', 'Ask about specific areas'],
         nextActions: []
       };
     }

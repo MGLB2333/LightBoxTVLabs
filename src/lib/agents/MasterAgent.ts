@@ -5,8 +5,10 @@ import { YouTubeCurationAgent } from './YouTubeCurationAgent';
 import { TVIntelligenceAgent } from './TVIntelligenceAgent';
 import { IncrementalReachAgent } from './IncrementalReachAgent';
 import { GeneralHelpAgent } from './GeneralHelpAgent';
+import { ConversationalAI } from './ConversationalAI';
 import { BaseAgent } from './BaseAgent';
 import type { Agent, AgentContext, AgentMessage, AgentResponse } from './types';
+import { supabase } from '../supabase';
 
 export class MasterAgent extends BaseAgent {
   private agents: Agent[] = [];
@@ -36,7 +38,8 @@ export class MasterAgent extends BaseAgent {
       new YouTubeCurationAgent(),
       new TVIntelligenceAgent(),
       new IncrementalReachAgent(),
-      new GeneralHelpAgent()
+      new GeneralHelpAgent(),
+      new ConversationalAI()
     ];
   }
 
@@ -47,39 +50,171 @@ export class MasterAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Handle technical questions directly
-      if (this.isTechnicalQuestion(message)) {
-        return await this.handleTechnicalQuestion(message);
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
+      
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
+        return {
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
+          agentId: 'master',
+          agentName: 'Master Agent',
+          suggestions: [
+            'Ask about campaigns',
+            'Request analytics',
+            'Get audience insights'
+          ],
+          nextActions: []
+        };
       }
 
-      // Step 2: Classify the query using our new method
+      // 🗃️ Step 2: Validate query
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackFlow(message),
+          confidence: 0.1,
+          agentId: 'master',
+          agentName: 'Master Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific topics'],
+          nextActions: []
+        };
+      }
+
+      // Step 3: Handle technical questions directly
+      if (this.isTechnicalQuestion(message)) {
+        const response = await this.handleTechnicalQuestion(message);
+        return response; // Return the AgentResponse directly
+      }
+
+      // Step 4: Find the best agent for this query
       const classification = await this.classifyQuery(message, context);
       console.log('Master Agent - Query classification:', classification);
 
-      // Step 3: Find the best agent to handle this message
       const bestAgent = this.findBestAgent(message, context);
       
       if (bestAgent) {
         console.log(`Master Agent routing to: ${bestAgent.name}`);
-        // Route to the specialized agent
-        return await bestAgent.process(message, context, history);
+        const agentResponse = await bestAgent.process(message, context, history);
+        
+        // ✅ Add relevant context from memory
+        const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+        if (relevantContext) {
+          agentResponse.content = `${relevantContext} ${agentResponse.content}`;
+        }
+        
+        return agentResponse;
       }
 
-      // Step 4: Handle low-confidence queries
-      if (classification.confidence < 0.3) {
-        return this.generateHelpfulFallback(message);
-      }
+      // Step 5: Use iterative reasoning for queries that don't have a clear agent
+      const systemPrompt = this.createSystemPrompt(context);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
 
-      // Step 5: Fallback response if no specific agent can handle it
-      return this.generateHelpfulFallback(message);
+      return {
+        content: this.conversationHelper.formatResponse(response, true),
+        confidence: classification.confidence,
+        agentId: 'master',
+        agentName: 'Master Agent',
+        suggestions: [
+          'Ask about campaign performance',
+          'Get audience insights',
+          'Analyze TV intelligence',
+          'Check incremental reach'
+        ],
+        nextActions: []
+      };
     } catch (error) {
       console.error('Master Agent error:', error);
       return {
-        content: "I encountered an error while processing your request. Please try again.",
+        content: this.conversationHelper.generateFallbackFlow(message),
         confidence: 0.1,
         agentId: 'master',
-        agentName: 'Master Agent'
+        agentName: 'Master Agent',
+        suggestions: ['Try rephrasing your question', 'Ask about specific topics'],
+        nextActions: []
       };
+    }
+  }
+
+  protected async gatherRelevantData(message: string, context: AgentContext, planning: string): Promise<string> {
+    try {
+      // Extract data requirements from planning
+      const dataNeeded = planning.includes('DATA_NEEDED') 
+        ? planning.split('DATA_NEEDED:')[1]?.split('\n')[0] || ''
+        : '';
+
+      // Gather general data based on requirements
+      const data: any = {};
+      
+      if (dataNeeded.includes('campaign')) {
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('id, name, status')
+          .eq('organization_id', context.organizationId);
+        data.campaigns = campaigns || [];
+      }
+      
+      if (dataNeeded.includes('audience') || dataNeeded.includes('segment')) {
+        const { data: segments } = await supabase
+          .from('experian_segments')
+          .select('segment_name, category')
+          .limit(100);
+        data.segments = segments || [];
+      }
+
+      return this.formatDataContext(data);
+    } catch (error) {
+      console.error('Error gathering relevant data:', error);
+      return 'Unable to gather relevant data at this time.';
+    }
+  }
+
+  private formatDataContext(data: any): string {
+    let context = '';
+    
+    if (data.campaigns && data.campaigns.length > 0) {
+      context += `Available campaigns: ${data.campaigns.length}\n`;
+    }
+    
+    if (data.segments && data.segments.length > 0) {
+      context += `Available audience segments: ${data.segments.length}\n`;
+    }
+    
+    return context || 'No relevant data available.';
+  }
+
+  private async improveResponse(response: string, originalQuery: string, suggestions: string[]): Promise<string> {
+    const improvementPrompt = `Improve this master agent response based on the feedback:
+
+ORIGINAL QUERY: "${originalQuery}"
+CURRENT RESPONSE: "${response}"
+IMPROVEMENT SUGGESTIONS: ${suggestions.join(', ')}
+
+Provide an improved response that addresses the issues while maintaining accuracy and helpfulness. Remember that as the Master Agent, you should either:
+1. Answer the question directly if you can
+2. Route to the appropriate specialized agent
+3. Provide helpful guidance on what the user can ask
+
+Don't give generic capability lists unless specifically asked about features.`;
+
+    const improvementMessages = [
+      { role: 'system', content: improvementPrompt },
+      { role: 'user', content: `Query: "${originalQuery}"\nResponse: "${response}"` }
+    ];
+
+    try {
+      return await this.callOpenAI(improvementMessages, {});
+    } catch (error) {
+      console.error('Response improvement failed:', error);
+      return response; // Return original response if improvement fails
     }
   }
 
@@ -211,7 +346,8 @@ export class MasterAgent extends BaseAgent {
     const simpleCampaignKeywords = [
       'what campaign', 'which campaign', 'campaign running', 'active campaign',
       'my campaign', 'campaigns running', 'current campaign', 'campaign list',
-      'show campaign', 'list campaign', 'campaign status', 'campaigns i have'
+      'show campaign', 'list campaign', 'campaign status', 'campaigns i have',
+      'how is it performing', 'how is performing', 'performance', 'how performing'
     ];
     
     return simpleCampaignKeywords.some(keyword => message.includes(keyword));
@@ -224,7 +360,7 @@ export class MasterAgent extends BaseAgent {
     // Check for agent-specific keywords with weighted scoring
     switch (agent.id) {
       case 'campaign':
-        const campaignKeywords = ['campaign', 'performance', 'metrics', 'analytics', 'impressions', 'spend', 'revenue', 'kpi', 'cpm', 'ctr', 'roi', 'optimize', 'strategy', 'budget', 'data', 'insights', 'how many', 'what are', 'show me'];
+        const campaignKeywords = ['campaign', 'performance', 'metrics', 'analytics', 'impressions', 'spend', 'revenue', 'kpi', 'cpm', 'ctr', 'roi', 'optimize', 'strategy', 'budget', 'data', 'insights', 'how many', 'what are', 'show me', 'publisher', 'publishers', 'inventory', 'bundle'];
         const campaignMatches = campaignKeywords.filter(keyword => lowerMessage.includes(keyword)).length;
         confidence = Math.min(campaignMatches / 5, 1); // Cap at 1, need at least 1 strong match
         break;
@@ -253,16 +389,16 @@ export class MasterAgent extends BaseAgent {
         confidence = Math.min(incrementalMatches / 4, 1);
         break;
         
+      case 'analytics':
+        const analyticsKeywords = ['analytics', 'dashboard', 'report', 'data', 'trends', 'analysis', 'insights', 'metrics', 'performance', 'kpi', 'publisher', 'publishers', 'inventory', 'bundle', 'top', 'best', 'worst'];
+        const analyticsMatches = analyticsKeywords.filter(keyword => lowerMessage.includes(keyword)).length;
+        confidence = Math.min(analyticsMatches / 3, 1);
+        break;
+        
       case 'general-help':
         const helpKeywords = ['help', 'how', 'what', 'where', 'when', 'why', 'guide', 'tutorial', 'support', 'assist', 'explain', 'show me', 'tell me', 'navigate', 'feature', 'function', 'button', 'menu', 'page', 'section'];
         const helpMatches = helpKeywords.filter(keyword => lowerMessage.includes(keyword)).length;
         confidence = Math.min(helpMatches / 4, 1);
-        break;
-        
-      case 'analytics':
-        const analyticsKeywords = ['analytics', 'dashboard', 'report', 'data', 'trends', 'analysis', 'insights', 'metrics', 'performance', 'kpi'];
-        const analyticsMatches = analyticsKeywords.filter(keyword => lowerMessage.includes(keyword)).length;
-        confidence = Math.min(analyticsMatches / 3, 1);
         break;
     }
 
@@ -270,6 +406,7 @@ export class MasterAgent extends BaseAgent {
     if (lowerMessage.includes('tesco') || lowerMessage.includes('brand')) confidence += 0.2;
     if (lowerMessage.includes('sports') || lowerMessage.includes('audience')) confidence += 0.2;
     if (lowerMessage.includes('campaign') && lowerMessage.includes('performance')) confidence += 0.2;
+    if (lowerMessage.includes('publisher') || lowerMessage.includes('publishers')) confidence += 0.3; // Boost publisher queries
 
     return Math.min(confidence, 1);
   }

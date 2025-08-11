@@ -1,0 +1,288 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Barb API
+  x-logo:
+    url: 'https://cdn.barb-api.co.uk/static/api-docs/logo.jpg'
+    backgroundColor: '#FFFFFF'
+    altText: 'Barb logo'
+
+tags:
+#  General
+  - name: Introduction
+    description:
+      $ref: paths/general/introduction.md
+  - name: Authentication
+    description:
+      $ref: paths/general/authentication.md
+  - name: Getting started
+    description:
+      $ref: paths/general/getting_started.md
+  - name: Pagination
+    description:
+      $ref: paths/general/pagination.md
+  - name: Sync API Limitations
+    description:
+      $ref: paths/general/sync_api_limitations.md
+    x-displayName: Sync API Limitations
+  - name: Async API Description
+    description:
+      $ref: paths/general/async_api.md
+    x-displayName: Async API
+  - name: Bulk API Description
+    description:
+      $ref: paths/general/bulk_api.md
+    x-displayName: Bulk API
+  - name: Changelog
+    description:
+      $ref: paths/general/changelog.md
+
+#  API Reference
+  - name: Auth
+  - name: Metadata
+  - name: Events
+  - name: Async API
+  - name: Bulk API
+
+#  Schemas
+  - name: audience_category_model
+    x-displayName: AudienceCategory
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/AudienceCategory" />
+  - name: audience_event_model
+    x-displayName: AudienceEvent
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/AudienceEvent" />
+  - name: audience_view_model
+    x-displayName: AudienceView
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/AudienceView" />
+  - name: clearcast-information-model
+    x-displayName: ClearcastInformation
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/ClearcastInformation" />
+  - name: datetime-model
+    x-displayName: Datetime
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Datetime" />
+  - name: device_model
+    x-displayName: Device
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Device" />
+  - name: episode-model
+    x-displayName: Episode
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Episode" />
+  - name: household_model
+    x-displayName: Household
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Household" />
+  - name: metabroadcast-information-model
+    x-displayName: MetaBroadcastInformation
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/MetaBroadcastInformation" />
+  - name: panel_member_model
+    x-displayName: PanelMember
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/PanelMember" />
+  - name: panel_model
+    x-displayName: Panel
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Panel" />
+  - name: programme-content-model
+    x-displayName: ProgrammeContent
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/ProgrammeContent" />
+  - name: programme-event-model
+    x-displayName: ProgrammeEvent
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/ProgrammeEvent" />
+  - name: sale-house-model
+    x-displayName: SalesHouse
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/SalesHouse" />
+  - name: series-model
+    x-displayName: Series
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Series" />
+  - name: sponsor-model
+    x-displayName: Sponsor
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Sponsor" />
+  - name: spot-event-model
+    x-displayName: SpotEvent
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/SpotEvent" />
+  - name: spot-schedule-item-model
+    x-displayName: SpotSchedule
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/SpotScheduleItem" />
+  - name: station_model
+    x-displayName: Station
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Station" />
+  - name: station-schedule-item-model
+    x-displayName: StationSchedule
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/StationScheduleItem" />
+  - name: viewing_station_model
+    x-displayName: ViewingStation
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/ViewingStation" />
+  - name: regionality-item-model
+    x-displayName: Regionality
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Regionality" />
+
+  #  Other
+  - name: References
+    description:
+      $ref: paths/references.md
+  - name: FAQ
+    description:
+      $ref: paths/faq.md
+
+x-tagGroups:
+  - name: General
+    tags:
+      - Introduction
+      - Authentication
+      - Getting started
+      - Pagination
+      - Sync API Limitations
+      - Async API Description
+      - Bulk API Description
+      - Changelog
+
+  - name: API reference
+    tags:
+      - Auth
+      - Metadata
+      - Events
+      - Async API
+      - Bulk API
+
+  - name: Schemas
+    tags:
+      - audience_category_model
+      - audience_event_model
+      - audience_view_model
+      - clearcast-information-model
+      - datetime-model
+      - device_model
+      - episode-model
+      - household_model
+      - metabroadcast-information-model
+      - panel_member_model
+      - panel_model
+      - programme-content-model
+      - programme-event-model
+      - sale-house-model
+      - series-model
+      - sponsor-model
+      - spot-event-model
+      - spot-schedule-item-model
+      - station_model
+      - station-schedule-item-model
+      - regionality-item-model
+      - async_batch_viewing
+      - async_batch_spot_audience
+      - async_batch_programme_audience
+      - async_batch_audiences_by_time
+      - async_batch_programme_ratings
+      - async_batch_advertising_spots
+      - async_batch_spot_schedule
+      - async_batch_programme_schedule
+      - async_batch_results
+      - bulk_viewing
+      - bulk_spot_audience
+      - bulk_programme_audience
+      - target_audience_categories
+      - viewing_stations
+      - spot_schedule
+      - programme_schedule
+      - programme_content_details
+      - transmission_log_programme_details
+#      - viewing_station_model
+      - split_station_factor
+
+  - name: Other
+    tags:
+      - FAQ
+      - References
+
+servers:
+  - url: https://barb-api.co.uk/api/v1
+paths:
+  /auth/token/:
+    $ref: paths/auth-token.yaml
+  /auth/token/refresh/:
+    $ref: paths/auth-token-refresh.yaml
+  /panels/:
+    $ref: paths/panels.yaml
+  /stations/:
+    $ref: paths/stations.yaml
+  /advertisers/:
+    $ref: paths/advertisers.yaml
+  /buyers/:
+    $ref: paths/buyers.yaml
+  /households/:
+    $ref: paths/households.yaml
+  /panel_members/:
+    $ref: paths/panel_members.yaml
+  /advertising_spots/:
+    $ref: paths/advertising_spots.yaml
+  /audiences_by_time/:
+    $ref: paths/audiences_by_time.yaml
+  /programme_ratings/:
+    $ref: paths/programme_ratings.yaml
+  /async-batch/viewing/:
+    $ref: paths/async_batch_viewing.yaml
+  /async-batch/spot_audience/:
+    $ref: paths/async_batch_spot_audience.yaml
+  /async-batch/programme_audience/:
+    $ref: paths/async_batch_programme_audience.yaml
+  /async-batch/audiences_by_time/:
+    $ref: paths/async_batch_audiences_by_time.yaml
+  /async-batch/programme_ratings/:
+    $ref: paths/async_batch_programme_ratings.yaml
+  /async-batch/advertising_spots/:
+    $ref: paths/async_batch_advertising_spots.yaml
+  /async-batch/spot_schedule/:
+    $ref: paths/async_batch_spot_schedule.yaml
+  /async-batch/programme_schedule/:
+    $ref: paths/async_batch_programme_schedule.yaml
+  /async-batch/results/<uuid>:
+    $ref: paths/async_batch_results.yaml
+  /bulk/viewing/:
+    $ref: paths/bulk_viewing.yaml
+  /bulk/spot_audience/:
+    $ref: paths/bulk_spot_audience.yaml
+  /bulk/programme_audience/:
+    $ref: paths/bulk_programme_audience.yaml
+  /target_audience_categories/:
+    $ref: paths/target_audience_categories.yaml
+  /viewing_stations/:
+    $ref: paths/viewing_stations.yaml
+  /spot_schedule/:
+    $ref: paths/spot_schedule.yaml
+  /programme_schedule/:
+    $ref: paths/programme_schedule.yaml
+  /programme_content_details/:
+    $ref: paths/programme_content_details.yaml
+  /transmission_log_programme_details/:
+    $ref: paths/transmission_log_programme_details.yaml
+  /split_station_factor/:
+    $ref: paths/split_station_factor.yaml
+
+
+components:
+  securitySchemes:
+    jwt:
+      description: |
+        Generate your JWT when you log in.
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - jwt: []

@@ -82,74 +82,96 @@ export class AudienceAgent extends BaseAgent {
   }
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
-    if (message.toLowerCase().includes('recommend') || message.toLowerCase().includes('suggest') || 
-        message.toLowerCase().includes('give me') || message.toLowerCase().includes('find') ||
-        message.toLowerCase().includes('audience') || message.toLowerCase().includes('segment')) {
-      try {
-        // Extract the actual audience description from the request
-        const audienceDescription = this.extractAudienceDescription(message);
-        
-        if (audienceDescription) {
-          const recommendations = await this.recommendAudiences(audienceDescription);
-          
-          if (recommendations.length > 0) {
-            return {
-              content: `Here are audience segments that match "${audienceDescription}":\n\n${recommendations.map((rec, index) => 
-                `${index + 1}. **${rec.segmentName}** (${Math.round(rec.confidence * 100)}% match)\n   📍 Category: ${rec.taxonomyPath}\n   💡 Why: ${rec.reasoning}`
-              ).join('\n\n')}\n\n**💡 Tip:** You can apply these segments to your campaign or ask me to find more specific audiences.`,
-              confidence: 0.9,
-              agentId: 'audience',
-              agentName: 'Audience Agent',
-              data: recommendations,
-              suggestions: [
-                'Apply these segments to a campaign',
-                'Find more specific audience types',
-                'Get geographic distribution for these segments',
-                'Compare segment performance'
-              ]
-            };
-          } else {
-            return {
-              content: `I couldn't find specific audience segments for "${audienceDescription}". Try being more specific, for example:\n\n• "Young professionals interested in fitness"\n• "Parents with children under 10"\n• "High-income tech enthusiasts"\n• "Urban millennials interested in sustainability"`,
-              confidence: 0.5,
-              agentId: 'audience',
-              agentName: 'Audience Agent',
-              suggestions: [
-                'Try a more specific audience description',
-                'Browse all available segments',
-                'Get help with audience targeting'
-              ]
-            };
-          }
-        } else {
-          return {
-            content: `I'd be happy to help you find audience segments! Could you describe the type of audience you're looking for? For example:\n\n• "Sports fans" → I'll find fitness, sports, and athletic segments\n• "Young professionals" → I'll find career-focused, urban segments\n• "Luxury consumers" → I'll find high-income, premium segments\n\n**Just describe your target audience and I'll find the best segments for you!**`,
-            confidence: 0.7,
-            agentId: 'audience',
-            agentName: 'Audience Agent',
-            suggestions: [
-              'Describe your target audience',
-              'Browse popular segments',
-              'Get help with audience targeting'
-            ]
-          };
-        }
-      } catch (error) {
+    try {
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
+      
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: 'Sorry, I encountered an error while finding audience segments. Please try again with a different description.',
-          confidence: 0.1,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'audience',
-          agentName: 'Audience Agent'
+          agentName: 'Audience Agent',
+          suggestions: [
+            'Ask about specific demographics',
+            'Request audience segments',
+            'Get geographic insights'
+          ],
+          nextActions: []
         };
       }
-    }
 
-    return {
-      content: 'I can help you find the perfect audience segments! Just describe who you want to reach, like "sports fans" or "young professionals" and I\'ll find the best Experian segments for you.',
-      confidence: 0.7,
-      agentId: 'audience',
-      agentName: 'Audience Agent'
-    };
+      // 🗃️ Step 2: Validate query and map to schema
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'audience'),
+          confidence: 0.1,
+          agentId: 'audience',
+          agentName: 'Audience Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific demographics'],
+          nextActions: []
+        };
+      }
+
+      // Step 3: Determine analysis type and gather data
+      const analysisType = this.determineAnalysisType(message);
+      const data = await this.getRelevantData(analysisType, context);
+      
+      if (!data || Object.keys(data).length === 0) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'audience'),
+          confidence: 0.1,
+          agentId: 'audience',
+          agentName: 'Audience Agent',
+          suggestions: ['Check your audience dashboard', 'Set up audience tracking'],
+          nextActions: []
+        };
+      }
+
+      // Step 4: Generate response using iterative reasoning
+      const systemPrompt = this.createSystemPrompt(context, data);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
+      
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
+
+      return {
+        content: finalResponse,
+        confidence: analysis.confidence,
+        agentId: 'audience',
+        agentName: 'Audience Agent',
+        suggestions: [
+          'Ask about demographic insights',
+          'Request geographic analysis',
+          'Get audience segments',
+          'Compare audience performance'
+        ],
+        nextActions: []
+      };
+    } catch (error) {
+      console.error('Audience Agent error:', error);
+      return {
+        content: this.conversationHelper.generateFallbackResponse(message, 'audience'),
+        confidence: 0.1,
+        agentId: 'audience',
+        agentName: 'Audience Agent',
+        suggestions: ['Try rephrasing your question', 'Check your audience dashboard'],
+        nextActions: []
+      };
+    }
   }
 
   private extractAudienceDescription(message: string): string | null {

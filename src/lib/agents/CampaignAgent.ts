@@ -64,67 +64,86 @@ export class CampaignAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Classify the query using our new method
-      const classification = await this.classifyQuery(message, context);
-      console.log('Campaign Agent - Query classification:', classification);
-
-      // Step 2: Handle simple campaign queries directly
-      if (this.isSimpleCampaignQuery(message)) {
-        return await this.handleSimpleCampaignQuery(message, context);
-      }
-
-      // Step 3: Handle low-confidence queries
-      if (classification.confidence < 0.3) {
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
+      
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: "I'm not entirely sure what you're asking about campaigns. Could you please rephrase your question? For example, you could ask about specific campaigns, performance metrics, or optimization strategies.",
-          confidence: classification.confidence,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'campaign',
           agentName: 'Campaign Agent',
           suggestions: [
-            'Ask about campaign performance',
-            'Request specific metrics',
-            'Mention campaign names',
-            'Ask about optimization'
+            'Ask about specific campaigns',
+            'Request performance metrics',
+            'Get optimization recommendations'
           ],
           nextActions: []
         };
       }
 
-      // Step 4: Use Chain-of-Thought processing for complex queries
-      if (classification.complexity === 'complex' || classification.requiresData) {
-        const systemPrompt = this.createSystemPrompt(context);
-        const response = await this.processWithChainOfThought(message, context, history, systemPrompt);
-        
-        // Step 5: Validate the response
-        const validation = await this.validateResponse(response, message);
-        if (!validation.isValid) {
-          console.warn('Response validation failed:', validation.issues);
-          const improvedResponse = await this.improveResponse(response, message, validation.suggestedImprovements);
-          return this.createResponse(improvedResponse, classification.confidence);
-        }
-
-        return this.createResponse(response, classification.confidence);
+      // 🗃️ Step 2: Validate query and map to schema
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackResponse(message, 'campaign'),
+          confidence: 0.1,
+          agentId: 'campaign',
+          agentName: 'Campaign Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific campaigns'],
+          nextActions: []
+        };
       }
 
-      // Step 6: Use legacy processing for moderate queries (fallback)
-      const analysisType = this.determineAnalysisType(message);
-      const data = await this.getRelevantData(analysisType, context);
-      const systemPrompt = this.createSystemPrompt(context, data);
-      const response = await this.processWithTwoCalls(message, context, history, systemPrompt);
+      // Step 3: Route to appropriate handler
+      let response: string;
+      
+      if (this.isSimpleCampaignQuery(message)) {
+        response = await this.handleSimpleCampaignQueryWithReasoning(message, context);
+      } else if (this.isComplexDatabaseQuery(message)) {
+        response = await this.solveWithSQL(message, context);
+      } else {
+        // Use iterative reasoning for other queries
+        const systemPrompt = this.createSystemPrompt(context);
+        response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+      }
 
-      return this.createResponse(response, classification.confidence);
-    } catch (error) {
-      console.error('Campaign Agent error:', error);
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
+      
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
+
       return {
-        content: "I apologize, but I encountered an error while processing your campaign request. Please try again or contact support if the issue persists.",
-        confidence: 0.1,
+        content: finalResponse,
+        confidence: analysis.confidence,
         agentId: 'campaign',
         agentName: 'Campaign Agent',
         suggestions: [
-          'Try rephrasing your question',
-          'Ask about specific campaigns or metrics',
-          'Check if you have the necessary permissions'
+          'Ask about campaign performance',
+          'Request geographic insights',
+          'Get optimization recommendations',
+          'Compare campaign metrics'
         ],
+        nextActions: []
+      };
+    } catch (error) {
+      console.error('Campaign Agent error:', error);
+      return {
+        content: this.conversationHelper.generateFallbackResponse(message, 'campaign'),
+        confidence: 0.1,
+        agentId: 'campaign',
+        agentName: 'Campaign Agent',
+        suggestions: ['Try rephrasing your question', 'Check your dashboard directly'],
         nextActions: []
       };
     }
@@ -134,100 +153,113 @@ export class CampaignAgent extends BaseAgent {
     const simpleCampaignKeywords = [
       'what campaign', 'which campaign', 'campaign running', 'active campaign',
       'my campaign', 'campaigns running', 'current campaign', 'campaign list',
-      'show campaign', 'list campaign', 'campaign status', 'campaigns i have',
-      'how many campaign', 'campaign count'
+      'show campaign', 'list campaign', 'campaign status', 'campaigns i have'
+    ];
+    
+    // Exclude performance-related queries
+    const performanceKeywords = [
+      'how is it performing', 'how is performing', 'performance', 'how performing',
+      'impressions', 'metrics', 'analytics', 'kpi', 'cpm', 'ctr', 'roi'
+    ];
+    
+    const hasSimpleKeywords = simpleCampaignKeywords.some(keyword => message.includes(keyword));
+    const hasPerformanceKeywords = performanceKeywords.some(keyword => message.includes(keyword));
+    
+    return hasSimpleKeywords && !hasPerformanceKeywords;
+  }
+
+  private async handleSimpleCampaignQueryWithReasoning(message: string, context: AgentContext): Promise<string> {
+    try {
+      // ✅ Use multi-turn reasoning
+      const reasoningSteps = this.conversationHelper.generateReasoningSteps(message, false);
+      
+      // Try multiple approaches to get campaign data
+      const approaches = [
+        () => this.tryGetCampaignsWithAllFields(context),
+        () => this.tryGetCampaignsWithBasicFields(context),
+        () => this.tryGetCampaignsMinimal(context)
+      ];
+
+      let campaigns = null;
+      let error = null;
+
+      for (const approach of approaches) {
+        try {
+          const result = await approach();
+          if (result.data && result.data.length >= 0) {
+            campaigns = result.data;
+            break;
+          }
+        } catch (err) {
+          error = err as Error;
+          console.log('Campaign query approach failed:', (err as Error).message);
+          continue;
+        }
+      }
+
+      if (!campaigns) {
+        return this.conversationHelper.generateFallbackResponse(message, 'campaign');
+      }
+
+      if (campaigns.length === 0) {
+        return "You don't have any campaigns set up yet. You can create your first campaign from the Campaigns page in your dashboard.";
+      }
+
+      // ✅ Summarise, don't dump - use ConversationHelper formatting
+      return this.conversationHelper.formatDataResults(campaigns, message);
+    } catch (error) {
+      console.error('Error handling simple campaign query:', error);
+      return this.conversationHelper.generateFallbackResponse(message, 'campaign');
+    }
+  }
+
+  private async tryGetCampaignsWithAllFields(context: AgentContext) {
+    return await supabase
+      .from('campaigns')
+      .select('id, name, status, created_at, start_date, end_date, budget, spend')
+      .order('created_at', { ascending: false });
+  }
+
+  private async tryGetCampaignsWithBasicFields(context: AgentContext) {
+    return await supabase
+      .from('campaigns')
+      .select('id, name, status, created_at')
+      .order('created_at', { ascending: false });
+  }
+
+  private async tryGetCampaignsMinimal(context: AgentContext) {
+    return await supabase
+      .from('campaigns')
+      .select('name, status')
+      .order('created_at', { ascending: false });
+  }
+
+  private generateHelpfulCampaignResponse(message: string, error: any): string {
+    const lowerMessage = message.toLowerCase();
+    
+    if (error && error.message && error.message.includes('column')) {
+      return "I found your campaigns but some data fields aren't available yet. You can check your campaign details in the Campaigns section of your dashboard.";
+    }
+    
+    if (lowerMessage.includes('campaign')) {
+      return "I'm having trouble accessing your campaign data right now. You can check your campaigns directly in the Campaigns section of your dashboard.";
+    }
+    
+    return "I understand you're asking about your campaigns, but I'm having trouble accessing that information right now. You can check your campaigns directly in the Campaigns section of your dashboard.";
+  }
+
+  private isComplexDatabaseQuery(message: string): boolean {
+    const complexQueryKeywords = [
+      'performance', 'metrics', 'impressions', 'completions', 'spend', 'revenue',
+      'compare', 'analysis', 'trends', 'top', 'best', 'worst', 'average', 'total',
+      'how many', 'count', 'sum', 'aggregate', 'group by', 'filter', 'where',
+      'recent', 'last week', 'last month', 'this month', 'this year',
+      'efficiency', 'roi', 'cpm', 'ctr', 'conversion', 'audience', 'geographic',
+      'insights', 'insight'
     ];
     
     const lowerMessage = message.toLowerCase();
-    return simpleCampaignKeywords.some(keyword => lowerMessage.includes(keyword));
-  }
-
-  private async handleSimpleCampaignQuery(message: string, context: AgentContext): Promise<AgentResponse> {
-    try {
-      // Get user's campaigns from Supabase
-      const { data: campaigns, error } = await supabase
-        .from('campaigns')
-        .select('id, name, status, created_at, start_date, end_date, budget, spend')
-        .eq('organization_id', context.organizationId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching campaigns:', error);
-        return {
-          content: "I'm having trouble accessing your campaign data right now. Please try again later.",
-          confidence: 0.5,
-          agentId: 'campaign',
-          agentName: 'Campaign Agent',
-          suggestions: ['Check your campaign dashboard', 'Try refreshing the page'],
-          nextActions: []
-        };
-      }
-
-      if (!campaigns || campaigns.length === 0) {
-        return {
-          content: "You don't have any campaigns set up yet. Would you like to create your first campaign?",
-          confidence: 0.9,
-          agentId: 'campaign',
-          agentName: 'Campaign Agent',
-          suggestions: ['Create a new campaign', 'Import existing campaigns'],
-          nextActions: ['Go to Campaigns page', 'Create new campaign']
-        };
-      }
-
-      const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'running');
-      const allCampaigns = campaigns.slice(0, 5); // Show top 5 most recent
-
-      let response = '';
-      
-      if (activeCampaigns.length > 0) {
-        response += `**Active Campaigns (${activeCampaigns.length}):**\n`;
-        activeCampaigns.forEach(campaign => {
-          const spend = campaign.spend ? ` - £${campaign.spend.toLocaleString()}` : '';
-          response += `• ${campaign.name} (${campaign.status})${spend}\n`;
-        });
-        response += `\n`;
-      }
-
-      if (allCampaigns.length > 0) {
-        response += `**Recent Campaigns:**\n`;
-        allCampaigns.forEach(campaign => {
-          const status = campaign.status || 'draft';
-          const spend = campaign.spend ? ` - £${campaign.spend.toLocaleString()}` : '';
-          response += `• ${campaign.name} (${status})${spend}\n`;
-        });
-      }
-
-      if (campaigns.length > 5) {
-        response += `\n*Showing ${allCampaigns.length} of ${campaigns.length} total campaigns*`;
-      }
-
-      return {
-        content: response,
-        confidence: 0.9,
-        agentId: 'campaign',
-        agentName: 'Campaign Agent',
-        suggestions: [
-          'Ask about specific campaign performance',
-          'Request campaign optimization tips',
-          'Compare campaign metrics'
-        ],
-        nextActions: [
-          'View campaign details',
-          'Create new campaign',
-          'Analyze campaign performance'
-        ]
-      };
-    } catch (error) {
-      console.error('Error handling simple campaign query:', error);
-      return {
-        content: "I'm having trouble accessing your campaign information. Please try again or check your campaign dashboard.",
-        confidence: 0.3,
-        agentId: 'campaign',
-        agentName: 'Campaign Agent',
-        suggestions: ['Check campaign dashboard', 'Refresh the page'],
-        nextActions: []
-      };
-    }
+    return complexQueryKeywords.some(keyword => lowerMessage.includes(keyword));
   }
 
   private createResponse(content: string, confidence: number): AgentResponse {
@@ -263,16 +295,14 @@ export class CampaignAgent extends BaseAgent {
       if (dataNeeded.includes('campaign') || dataNeeded.includes('performance')) {
         const { data: campaigns } = await supabase
           .from('campaigns')
-          .select('id, name, status, budget, spend')
-          .eq('organization_id', context.organizationId);
+          .select('id, name, status, budget, spend');
         data.campaigns = campaigns || [];
       }
       
       if (dataNeeded.includes('metrics') || dataNeeded.includes('impressions')) {
         const { data: metrics } = await supabase
-          .from('campaign_events')
-          .select('campaign_id, impressions, completions, spend')
-          .eq('organization_id', context.organizationId)
+          .from('campaign_summary_metrics')
+          .select('campaign_id, campaign_name, total_impressions, total_completed_views, total_spend, total_revenue, completion_rate, ctr, roas')
           .limit(1000);
         data.metrics = metrics || [];
       }
@@ -281,9 +311,16 @@ export class CampaignAgent extends BaseAgent {
         const { data: geoData } = await supabase
           .from('campaign_events')
           .select('postcode_sector, impressions, completions')
-          .eq('organization_id', context.organizationId)
           .limit(1000);
         data.geographic = geoData || [];
+      }
+
+      if (dataNeeded.includes('inventory') || dataNeeded.includes('publisher')) {
+        const { data: inventoryData } = await supabase
+          .from('campaign_events')
+          .select('pub_name, impressions, completions')
+          .limit(1000);
+        data.inventory = inventoryData || [];
       }
 
       return this.formatDataContext(data);

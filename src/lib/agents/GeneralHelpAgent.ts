@@ -67,51 +67,78 @@ export class GeneralHelpAgent extends BaseAgent {
 
   async process(message: string, context: AgentContext, history: AgentMessage[]): Promise<AgentResponse> {
     try {
-      // Step 1: Analyze the request and find relevant help topics
-      const relevantTopics = await this.findRelevantTopics(message);
+      // 🧠 Step 1: Analyze user request with internal reasoning
+      const analysis = await this.conversationHelper.analyzeUserRequest(message, context);
       
-      // Step 2: Check if we have enough information to provide a helpful response
-      if (relevantTopics.length === 0) {
+      // Get conversation memory
+      const memory = this.conversationHelper.getConversationMemory(context.userId || 'default');
+      this.conversationHelper.updateMemory(memory, message, context);
+      
+      // ✅ Reflect user intent clearly
+      const intentReflection = this.conversationHelper.reflectUserIntent(message, context);
+      
+      // Check if clarification is needed
+      if (analysis.requiresClarification) {
         return {
-          content: this.generateGeneralHelpResponse(),
-          confidence: 0.3,
+          content: `${intentReflection} ${analysis.clarificationQuestion}`,
+          confidence: analysis.confidence,
           agentId: 'general-help',
           agentName: 'General Help Agent',
           suggestions: [
-            'Ask about specific platform features',
-            'Request help with navigation',
-            'Ask about analytics or campaigns',
-            'Get help with audience building'
-          ]
+            'Ask about specific features',
+            'Request navigation help',
+            'Get setup assistance'
+          ],
+          nextActions: []
         };
       }
 
-      // Step 3: Generate a comprehensive help response
-      const response = await this.generateHelpResponse(message, relevantTopics, context);
+      // 🗃️ Step 2: Validate query
+      const validation = this.conversationHelper.validateQuery(message);
+      if (!validation.isValid) {
+        return {
+          content: this.conversationHelper.generateFallbackFlow(message),
+          confidence: 0.1,
+          agentId: 'general-help',
+          agentName: 'General Help Agent',
+          suggestions: ['Try rephrasing your question', 'Ask about specific topics'],
+          nextActions: []
+        };
+      }
+
+      // Step 3: Generate response using iterative reasoning
+      const systemPrompt = this.createSystemPrompt(context);
+      const response = await this.processWithIterativeReasoning(message, context, history, systemPrompt);
+
+      // ✅ Format response with human-like touches
+      const formattedResponse = this.conversationHelper.formatResponse(response, true);
       
-      // Step 4: Add suggestions and next actions
-      const suggestions = this.generateSuggestions(relevantTopics);
+      // ✅ Add relevant context from memory
+      const relevantContext = this.conversationHelper.getRelevantContext(memory, message);
+      const finalResponse = relevantContext ? `${relevantContext} ${formattedResponse}` : formattedResponse;
 
       return {
-        content: response,
-        confidence: 0.8,
+        content: finalResponse,
+        confidence: analysis.confidence,
         agentId: 'general-help',
         agentName: 'General Help Agent',
-        suggestions,
-        nextActions: [
-          'Explore the platform features',
-          'Contact support for specific issues',
-          'Check the documentation',
-          'Try the interactive tutorials'
-        ]
+        suggestions: [
+          'Ask about navigation',
+          'Request feature help',
+          'Get setup guidance',
+          'Learn about capabilities'
+        ],
+        nextActions: []
       };
     } catch (error) {
       console.error('General Help Agent error:', error);
       return {
-        content: "I encountered an error while processing your help request. Please try rephrasing your question or contact support directly.",
+        content: this.conversationHelper.generateFallbackFlow(message),
         confidence: 0.1,
         agentId: 'general-help',
-        agentName: 'General Help Agent'
+        agentName: 'General Help Agent',
+        suggestions: ['Try rephrasing your question', 'Ask about specific topics'],
+        nextActions: []
       };
     }
   }

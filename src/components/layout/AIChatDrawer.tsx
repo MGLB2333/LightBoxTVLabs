@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Bot, X, Send, User } from 'lucide-react';
 import { agentService } from '../../lib/agents/AgentService';
 import type { AgentMessage } from '../../lib/agents/types';
+
+// Loading animation component
+const LoadingDots: React.FC = () => (
+  <div className="flex space-x-1">
+    <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></div>
+    <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+    <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+  </div>
+);
 
 interface AIChatDrawerProps {
   isOpen: boolean;
@@ -15,6 +24,15 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, initialQue
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (isOpen) {
@@ -52,6 +70,13 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, initialQue
       setSuggestions(agentSuggestions);
     } catch (error) {
       console.error('Error loading suggestions:', error);
+      // Fallback suggestions
+      setSuggestions([
+        'How is my campaign performing?',
+        'Show me audience insights',
+        'What are my top metrics?',
+        'Help me optimize my campaign'
+      ]);
     }
   };
 
@@ -75,7 +100,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, initialQue
         currentPage: window.location.pathname,
         // Add user context from your auth system
         // userId: currentUser?.id,
-        // organizationId: currentOrg?.id,
+        organizationId: '16bb4799-c3b2-44c9-87a0-1d253bc83c15', // Default org ID for now
         // filters: currentFilters
       };
 
@@ -179,11 +204,14 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, initialQue
               <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Bot className="w-4 h-4 text-pink-500" />
-                  <div className="text-sm">AI is thinking...</div>
+                  <LoadingDots />
                 </div>
               </div>
             </div>
           )}
+          
+          {/* Auto-scroll reference */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
@@ -206,6 +234,22 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, initialQue
               <Send className="w-4 h-4" />
             </button>
           </div>
+          
+          {/* Suggestions */}
+          {suggestions.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {suggestions.slice(0, 4).map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  disabled={isLoading}
+                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

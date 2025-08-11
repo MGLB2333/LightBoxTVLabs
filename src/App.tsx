@@ -17,6 +17,8 @@ import Reach from './pages/analytics/Reach';
 import YouTubeAnalytics from './pages/analytics/YouTube';
 import YouTubeCuration from './pages/YouTubeCuration';
 import TVIntelligence from './pages/TVIntelligence';
+import TVDeliveryMonitor from './pages/TVDeliveryMonitor';
+import BARBDataPuller from './pages/BARBDataPuller';
 import IncrementalReach from './pages/IncrementalReach';
 import LightBoxTVAI from './pages/LightBoxTVAI';
 import Documentation from './pages/Documentation';
@@ -37,6 +39,11 @@ function App() {
         }>
           <Route index element={<Navigate to="/analytics" replace />} />
           <Route path="analytics" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+          <Route path="campaigns/:campaignId/analytics" element={
+            <AnalyticsFilterProvider>
+              <AnalyticsLayout />
+            </AnalyticsFilterProvider>
+          } />
           <Route path="analytics-insights/*" element={
             <AnalyticsFilterProvider>
               <AnalyticsLayout />
@@ -53,7 +60,9 @@ function App() {
           </Route>
           <Route path="integrations" element={<Integrations />} />
           <Route path="youtube-curation" element={<YouTubeCuration />} />
-          <Route path="tv-intelligence" element={<TVIntelligence />} />
+                      <Route path="tv-intelligence" element={<TVIntelligence />} />
+            <Route path="tv-delivery-monitor" element={<TVDeliveryMonitor />} />
+            <Route path="barb-data-puller" element={<BARBDataPuller />} />
           <Route path="incremental-reach" element={<IncrementalReach />} />
           <Route path="my-organizations" element={<MyOrganizations />} />
           <Route path="lightboxtv-ai" element={<LightBoxTVAI />} />

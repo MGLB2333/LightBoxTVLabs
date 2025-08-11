@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { ChevronDown, Plus, UserPlus, X, LogOut, Search, Bot } from 'lucide-react'
+import { ChevronDown, Plus, UserPlus, X, LogOut, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import AIChatDrawer from './AIChatDrawer'
 
@@ -265,10 +265,11 @@ const Header: React.FC = () => {
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 bg-pink-500 text-white rounded hover:bg-pink-600 transition-colors"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-pink-500 text-white rounded hover:bg-pink-600 transition-colors flex items-center gap-1"
                 disabled={!aiSearchQuery.trim()}
               >
-                <Bot className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
+                <span className="text-xs font-medium">Ask AI</span>
               </button>
             </div>
           </form>

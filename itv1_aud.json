@@ -1,0 +1,256 @@
+{
+  "advertiser": "a a automobile ass",
+  "brand": "",
+  "agency": "the7stars uk limited",
+  "date": "2025-08-01",
+  "station": "itv1",
+  "total_spots": 5000,
+  "filtered_spots": 1,
+  "sample": [
+    {
+      "station": "ITV1",
+      "audience_views": [
+        {
+          "description": "All Homes",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "All Adults",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "All Men",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "All Houseperson",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "All Children aged 4-15",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 16-24",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 16-34",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 35-44",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 45-54",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 55-64",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 18-20",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 21-24",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 45-49",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 16-24",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 16-34",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 35-44",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 45-54",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 55-64",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 18-20",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 21-24",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men 45-49",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson 16-34",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson 16-44",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson 35-54",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Individuals AB",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Individuals C1",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Individuals C2",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults ABC1",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults AB",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults C2",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men ABC1",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men AB",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men C2",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults ABC1 16-24",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults ABC1 16-34",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults ABC1 16-44",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults ABC1 35-54",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men ABC1 16-24",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men ABC1 16-34",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men ABC1 16-44",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men ABC1 35-54",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson ABC1",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson ABC1 16-34",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults working full-time",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men working full-time",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson working full-time",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men ABC1 working full-time",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Men AB working full-time",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson with children 0-15",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Houseperson with children 0-3",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Children 04-09",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Children 04-06",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Children 10-12",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Boys 04-15",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Boys 04-09",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Boys 10-12",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults, Lightest Third",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults, Lightest Sixth",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "ABC1 Adults, Lightest Third",
+          "audience_size_hundreds": 0
+        },
+        {
+          "description": "Adults 16-34, Lightest Third",
+          "audience_size_hundreds": 0
+        }
+      ]
+    }
+  ]
+}

@@ -206,6 +206,8 @@ export class BARBApiService {
     brand?: string;
     agency?: string;
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
     channel?: string;
   } = {}): Promise<any[]> {
 
@@ -213,7 +215,13 @@ export class BARBApiService {
       // Use campaign date from filters, or fallback to a recent date range
       let params: any = {};
       
-      if (filters.date) {
+      if (filters.dateFrom || filters.dateTo) {
+        const from = (filters as any).dateFrom || filters.date || new Date().toISOString().split('T')[0];
+        const to = (filters as any).dateTo || filters.date || from;
+        params.min_transmission_date = from;
+        params.max_transmission_date = to;
+        console.log(`📅 Using explicit date range: ${from} to ${to}`);
+      } else if (filters.date) {
         const dateObj = new Date(filters.date);
         const now = new Date();
         
@@ -229,16 +237,11 @@ export class BARBApiService {
           
           console.log(`📅 Using historical date range instead: ${params.min_transmission_date} to ${params.max_transmission_date}`);
         } else {
-          // Use the campaign's actual date with a 7-day range around it for historical dates
-          const startDate = new Date(dateObj);
-          startDate.setDate(dateObj.getDate() - 3);
-          const endDate = new Date(dateObj);
-          endDate.setDate(dateObj.getDate() + 3);
-          
-          params.min_transmission_date = startDate.toISOString().split('T')[0];
-          params.max_transmission_date = endDate.toISOString().split('T')[0];
-          
-          console.log(`📅 Using campaign date range: ${params.min_transmission_date} to ${params.max_transmission_date}`);
+          // Use the campaign's actual date (exact day) to avoid over-counting
+          const day = dateObj.toISOString().split('T')[0];
+          params.min_transmission_date = day;
+          params.max_transmission_date = day;
+          console.log(`📅 Using exact campaign date: ${day}`);
         }
       } else {
         // Fallback to a much smaller date range (last 7 days of 2024)
@@ -736,12 +739,12 @@ export class BARBApiService {
             
             // Validate and use the audience data
             if (audienceSizeHundreds && audienceSizeHundreds > 0) {
-              const audienceSize = audienceSizeHundreds * 100; // Convert from hundreds
+              const audienceSize = audienceSizeHundreds; // Keep in hundreds
               totalImpacts += audienceSize;
               
               // Store target size for TVR calculation
               if (targetSizeHundreds && !isNaN(targetSizeHundreds) && targetSizeHundreds > 0) {
-                console.log(`✅ Valid audience data: Size=${audienceSize.toLocaleString()}, Target=${(targetSizeHundreds * 100).toLocaleString()}`);
+                console.log(`✅ Valid audience data: Size=${audienceSize.toLocaleString()}, Target=${targetSizeHundreds.toLocaleString()}`);
               } else {
                 console.log(`⚠️ Invalid target size: ${targetSizeHundreds}`);
               }
@@ -780,7 +783,7 @@ export class BARBApiService {
             if (targetAudience) {
               const targetSizeHundreds = targetAudience.audience_target_size_hundreds;
               if (targetSizeHundreds && !isNaN(targetSizeHundreds) && targetSizeHundreds > 0) {
-                return sum + (targetSizeHundreds * 100);
+                return sum + targetSizeHundreds; // Keep in hundreds
               }
             }
           }
@@ -870,19 +873,19 @@ export class BARBApiService {
 
   // Helper method to get universe size based on buying audience (in hundreds to match impression scaling)
   static getUniverseSize(buyingAudience?: string): number {
-    if (!buyingAudience) return 270000; // Default UK households (27M/100)
+    if (!buyingAudience) return 2700; // Default UK households (27M/10K = 2,700 hundreds)
     
     const universeMapping: Record<string, number> = {
-      'houseperson with children 0-15': 270000, // UK households (27M/100)
-      'adult': 520000, // UK adult population (52M/100)
-      'housewives': 260000, // UK housewives (26M/100)
-      'children': 120000, // UK children (12M/100)
-      'men': 250000, // UK men (25M/100)
-      'women': 270000, // UK women (27M/100)
-      'hp+child': 270000 // UK households (27M/100)
+      'houseperson with children 0-15': 2700, // UK households (27M/10K = 2,700 hundreds)
+      'adult': 5200, // UK adult population (52M/10K = 5,200 hundreds)
+      'housewives': 2600, // UK housewives (26M/10K = 2,600 hundreds)
+      'children': 1200, // UK children (12M/10K = 1,200 hundreds)
+      'men': 2500, // UK men (25M/10K = 2,500 hundreds)
+      'women': 2700, // UK women (27M/10K = 2,700 hundreds)
+      'hp+child': 2700 // UK households (27M/10K = 2,700 hundreds)
     };
     
-    return universeMapping[buyingAudience.toLowerCase()] || 270000;
+    return universeMapping[buyingAudience.toLowerCase()] || 2700;
   }
 
   // Clear TVR cache (useful for testing or when data becomes stale)

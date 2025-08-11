@@ -233,12 +233,13 @@ export class TVCampaignService {
         start_date: campaign.start_date
       });
 
-      // Fetch ALL spots for the campaign in one API call (no station filter)
+      // Fetch ALL spots for August 2025 (explicit window) in one API call (no station filter)
       const allSpots = await BARBApiService.getAdvertisingSpots({
-              advertiser: campaign.advertiser_name || '',
-              brand: campaign.brand_name || '',
-              agency: campaign.agency_name || '',
-        date: campaign.start_date || ''
+        advertiser: campaign.advertiser_name || '',
+        brand: campaign.brand_name || '',
+        agency: campaign.agency_name || '',
+        dateFrom: '2025-08-01',
+        dateTo: '2025-08-31'
         // No station filter - get all spots
       });
 
@@ -291,302 +292,212 @@ export class TVCampaignService {
 
       console.log(`📊 Plan vs Actual - Final filtered spots: ${filteredSpots.length}`);
 
-      // Use filtered spots instead of allSpots
       const spotsToProcess = filteredSpots;
 
-      // Group spots by station and calculate TVR locally
-      const stationTVRResults = new Map<string, {
-        tvr: number;
-        impacts: number;
-        spots_count: number;
-        total_duration: number;
-      }>();
+      // Helpers
+      const normalize = (s: string) => (s || '')
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/\+1$/,'plus1')
+        .replace(/hd$/,'')
+        .replace(/[^a-z0-9]/g, '');
 
-      // Get unique stations from plans
-      const uniqueStations = [...new Set(plans.map(plan => plan.group_name))];
-      
-      // Calculate TVR for each station using the spots we already have
-      for (const stationName of uniqueStations) {
+      const getStationSynonyms = (planStation: string): string[] => {
+        const p = planStation.trim().toLowerCase();
+        const synonyms: Record<string, string[]> = {
+          // UKTV rebrands → U& equivalents and legacy names
+          'u&alibi': ['u&alibi', 'u&alibiplus1', 'alibi', 'alibiplus1'],
+          'u&drama': ['u&drama', 'dramaplus1', 'drama'],
+          'u&eden': ['u&eden', 'u&edenplus1', 'eden', 'edenplus1'],
+          'u&gold': ['u&gold', 'u&goldplus1', 'gold', 'goldplus1'],
+          'u&w': ['u&w', 'u&wplus1', 'w', 'wplus1'],
+          'u&yesterday': ['u&yesterday', 'yesterday', 'yesterdayplus1'],
+          // ITV, Channel 4 strict
+          'itv1': ['itv1'],
+          'channel 4': ['channel 4'],
+          // Sky brand tolerances
+          'sky crime': ['skycrime', 'skycrimeplus1'],
+          'sky cinema animation': ['skycinemaanimation'],
+          'sky cinema comedy': ['skycinemacomedy'],
+          'sky cinema sci-fi & horror': ['skycinemascifihorror'],
+        };
+
+        const key = p.replace(/\s+/g, ' ');
+        const list = synonyms[key] || [];
+        // Add generic forms for U&X style names
+        if (p.startsWith('u&')) {
+          const base = p.replace('u&','u');
+          list.push(p, `${p}+1`, base, `${base}+1`);
+        }
+        // Always include the normalized original
+        const norm = normalize(p);
+        return Array.from(new Set(list.map(normalize).concat([norm])));
+      };
+
+      const isSameStation = (planStation: string, spotStation: string) => {
+        const s = normalize(spotStation);
+        const candidates = getStationSynonyms(planStation);
+        if (!s || candidates.length === 0) return false;
+        // exact or contains either side
+        return candidates.some(c => c === s || c.includes(s) || s.includes(c));
+      };
+
+      const matchesAudience = (planAudience: string | undefined, description: string | undefined): boolean => {
+        const a = (planAudience || '').toLowerCase();
+        const d = (description || '').toLowerCase();
+        if (!d) return false;
+        if (!a) return d.includes('all homes');
+        if (a.includes('hp') || a.includes('house')) return d.includes('house') && d.includes('child');
+        if (a.includes('adult')) return d.includes('adult');
+        if (a.includes('all home')) return d.includes('all homes');
+        return false;
+      };
+
+      const plansWithActuals: CampaignPlanWithActuals[] = [];
+
+      for (const plan of plans) {
         try {
-
-          
-          // More flexible station matching - try multiple approaches using FILTERED spots
-          let stationSpots = spotsToProcess.filter((spot: any) => 
-            spot.station?.station_name === stationName
-          );
-
-          // If no exact match, try partial matching
-          if (stationSpots.length === 0) {
-            stationSpots = spotsToProcess.filter((spot: any) => 
-              spot.station?.station_name?.toLowerCase().includes(stationName.toLowerCase()) ||
-              stationName.toLowerCase().includes(spot.station?.station_name?.toLowerCase() || '')
-            );
+          // 1) Slice spots strictly for this plan's station
+          let planSpots = spotsToProcess.filter((spot: any) => {
+            const spotName: string = spot.station?.station_name || '';
+            return spotName && isSameStation(plan.group_name, spotName);
+          });
+          if (planSpots.length === 0) {
+            planSpots = spotsToProcess.filter((spot: any) => spot.station?.group_name === plan.group_name || spot.group_name === plan.group_name);
           }
 
-          // If still no match, try matching by group_name if available
-          if (stationSpots.length === 0) {
-            stationSpots = spotsToProcess.filter((spot: any) => 
-              spot.station?.group_name === stationName ||
-              spot.group_name === stationName
-            );
-          }
-
-          // If still no match, try very loose matching for common variations
-          if (stationSpots.length === 0) {
-            const normalizedStationName = stationName.toLowerCase()
-              .replace(/\s+/g, ' ')
-              .replace(/hd$/, '')
-              .replace(/\s+hd$/, '')
-              .trim();
-            
-            stationSpots = spotsToProcess.filter((spot: any) => {
-              const normalizedSpotName = (spot.station?.station_name || '').toLowerCase()
-                .replace(/\s+/g, ' ')
-                .replace(/hd$/, '')
-                .replace(/\s+hd$/, '')
-                .trim();
-              
-              return normalizedSpotName === normalizedStationName ||
-                     normalizedSpotName.includes(normalizedStationName) ||
-                     normalizedStationName.includes(normalizedSpotName);
-            });
-          }
-
-          if (stationSpots.length === 0) {
-            stationTVRResults.set(stationName, {
-              tvr: 0,
-              impacts: 0,
-              spots_count: 0,
-              total_duration: 0
-            });
-            continue;
-          }
-
-          // Filter spots to only include those with "Houseperson with children 0-15" audience data
-          let filteredStationSpots = stationSpots.filter((spot: any) => {
-            if (spot.audience_views && spot.audience_views.length > 0) {
-              return spot.audience_views.some((view: any) => 
-                view.description?.toLowerCase().includes('houseperson') && 
-                view.description?.toLowerCase().includes('children')
-              );
-            }
-            return false;
+          // 2) Enforce advertiser/brand/agency again
+          planSpots = planSpots.filter((spot: any) => {
+            const adv = (spot.clearcast_information?.advertiser_name || '').toLowerCase();
+            const br = (spot.clearcast_information?.product_name || '').toLowerCase();
+            const ag = (spot.clearcast_information?.buyer_name || '').toLowerCase();
+            const wantAdv = (campaign.advertiser_name || '').toLowerCase();
+            const wantBr = (campaign.brand_name || '').toLowerCase();
+            const wantAg = (campaign.agency_name || '').toLowerCase();
+            const advOk = wantAdv ? adv.includes(wantAdv) : true;
+            const brOk = wantBr ? br.includes(wantBr) : true;
+            const agOk = wantAg ? ag.includes(wantAg) : true;
+            return advOk && brOk && agOk;
           });
 
-          // If no spots with target audience, try with "All Homes" as fallback
-          if (filteredStationSpots.length === 0) {
-            filteredStationSpots = stationSpots.filter((spot: any) => {
-              if (spot.audience_views && spot.audience_views.length > 0) {
-                return spot.audience_views.some((view: any) => 
-                  view.description?.toLowerCase().includes('all homes')
-                );
-              }
-              return false;
-            });
-          }
-
-          // If still no spots, use any spots with any audience data
-          if (filteredStationSpots.length === 0) {
-            filteredStationSpots = stationSpots.filter((spot: any) => {
-              return spot.audience_views && spot.audience_views.length > 0;
-            });
-          }
-
-          if (filteredStationSpots.length === 0) {
-            stationTVRResults.set(stationName, {
-              tvr: 0,
-              impacts: 0,
+          if (planSpots.length === 0) {
+            plansWithActuals.push({
+              ...plan,
+              actual_tvr: 0,
+              actual_value: 0,
               spots_count: 0,
-              total_duration: 0
+              impacts: 0,
+              tvr_variance: plan.deal_tvr ? 0 - plan.deal_tvr : undefined,
+              value_variance: plan.cpt && plan.deal_tvr ? (0 - plan.deal_tvr) * plan.cpt : undefined
             });
             continue;
           }
 
-          // Calculate TVR properly - get individual spot TVRs and average them
-          let totalTVR = 0;
-          let validSpotsCount = 0;
-          let totalDuration = 0;
-          let totalImpacts = 0;
-          
-          filteredStationSpots.forEach((spot: any) => {
-            // Get spot duration in seconds
-            const duration = spot.spot_duration || spot.duration || 0;
-            totalDuration += duration;
-            
-            // Calculate TVR for this individual spot
-            let spotTVR = 0;
-            let audienceSize = 0;
-            let targetSize = 0;
-            
-            if (spot.audience_size_hundreds && spot.audience_target_size_hundreds) {
-              // Use the direct values from BARB API
-              audienceSize = spot.audience_size_hundreds * 100; // Convert from hundreds
-              targetSize = spot.audience_target_size_hundreds * 100; // Convert from hundreds
-              
-              if (targetSize > 0) {
-                spotTVR = (audienceSize / targetSize) * 100;
-                totalTVR += spotTVR;
-                totalImpacts += audienceSize;
-                validSpotsCount++;
+          // 3) Weighted sums across audience views matching plan audience
+          let sumAudienceHundreds = 0;
+          let sumTargetHundreds = 0;
+          let counted = 0;
+          for (const spot of planSpots) {
+            const views: any[] = spot.audience_views || [];
+          // prefer exact plan audience match; else pick the largest audience view to avoid zeros
+          let view = views.find(v => matchesAudience(plan.buying_audience || '', v.description));
+          if (!view) {
+            // choose audience view with max audience_size_hundreds
+            view = views.reduce((best, cur) => {
+              const size = cur?.audience_size_hundreds || 0;
+              const bestSize = best?.audience_size_hundreds || 0;
+              return size > bestSize ? cur : best;
+            }, undefined as any);
+          }
+            if (view && view.audience_size_hundreds && view.audience_size_hundreds > 0) {
+              sumAudienceHundreds += view.audience_size_hundreds;
+              if (view.audience_target_size_hundreds && view.audience_target_size_hundreds > 0) {
+                sumTargetHundreds += view.audience_target_size_hundreds;
               }
-            } else if (spot.audience_views && spot.audience_views.length > 0) {
-              // Look specifically for "Houseperson with children 0-15" audience first
-              let targetAudience = spot.audience_views.find((view: any) => 
-                view.description?.toLowerCase().includes('houseperson') && 
-                view.description?.toLowerCase().includes('children')
-              );
-              
-              // If not found, fall back to "All Homes"
-              if (!targetAudience) {
-                targetAudience = spot.audience_views.find((view: any) => 
-                  view.description?.toLowerCase().includes('all homes')
-                );
-              }
-              
-              // If still not found, use the first available audience
-              if (!targetAudience && spot.audience_views.length > 0) {
-                targetAudience = spot.audience_views[0];
-              }
-              
-              if (targetAudience) {
-                // Validate the audience data - be more lenient
-                const audienceSizeHundreds = targetAudience.audience_size_hundreds;
-                const targetSizeHundreds = targetAudience.audience_target_size_hundreds;
-                
-                // More lenient validation - accept any non-zero size
-                if (audienceSizeHundreds && audienceSizeHundreds > 0) {
-                  audienceSize = audienceSizeHundreds * 100;
-                  
-                  // For target size, use it if valid, otherwise use a reasonable fallback
-                  if (targetSizeHundreds && !isNaN(targetSizeHundreds) && targetSizeHundreds > 0) {
-                    targetSize = targetSizeHundreds * 100;
-                  } else {
-                    // Use a reasonable target size based on audience type (in hundreds to match impression scaling)
-                    if (targetAudience.description?.toLowerCase().includes('all homes')) {
-                      targetSize = 270000; // UK households (27M/100)
-                    } else if (targetAudience.description?.toLowerCase().includes('all adults')) {
-                      targetSize = 520000; // UK adults (52M/100)
-                    } else if (targetAudience.description?.toLowerCase().includes('houseperson')) {
-                      targetSize = 260000; // UK housewives (26M/100)
-                    } else {
-                      targetSize = 270000; // Default to households (27M/100)
-                    }
-                  }
-                  
-                  // Calculate TVR for this spot
-                  if (targetSize > 0) {
-                    spotTVR = (audienceSize / targetSize) * 100;
-                    totalTVR += spotTVR;
-                    totalImpacts += audienceSize;
-                    validSpotsCount++;
-                  }
-                } else {
-                  // Try to find alternative audience data
-                  const alternativeAudience = spot.audience_views.find((view: any) => 
-                    view.description?.toLowerCase().includes('all homes') ||
-                    view.description?.toLowerCase().includes('all adults')
-                  );
-                  
-                  if (alternativeAudience) {
-                    const altSizeHundreds = alternativeAudience.audience_size_hundreds;
-                    
-                    if (altSizeHundreds && altSizeHundreds > 0) {
-                      audienceSize = altSizeHundreds * 100;
-                      
-                      if (alternativeAudience.audience_target_size_hundreds && 
-                          !isNaN(alternativeAudience.audience_target_size_hundreds) && 
-                          alternativeAudience.audience_target_size_hundreds > 0) {
-                        targetSize = alternativeAudience.audience_target_size_hundreds * 100;
-                      } else {
-                        targetSize = 270000; // Default fallback (27M/100)
-                      }
-                      
-                      // Calculate TVR for this spot
-                      if (targetSize > 0) {
-                        spotTVR = (audienceSize / targetSize) * 100;
-                        totalTVR += spotTVR;
-                        totalImpacts += audienceSize;
-                        validSpotsCount++;
-                      }
-                    }
+              counted += 1;
+            }
+          }
+
+          let actual_tvr = 0;
+          if (sumAudienceHundreds > 0) {
+            if (sumTargetHundreds > 0) {
+              actual_tvr = (sumAudienceHundreds / sumTargetHundreds) * 100;
+            } else {
+              const { BARBApiService } = await import('./barbApiService');
+              const universe = BARBApiService.getUniverseSize(plan.buying_audience);
+              actual_tvr = universe > 0 ? (sumAudienceHundreds / universe) * 100 : 0;
+            }
+          }
+
+          // If future window returns no audience, fall back to a recent historical window to provide an estimate
+          if (actual_tvr === 0 && counted === 0) {
+            try {
+              const { BARBApiService } = await import('./barbApiService');
+              const histSpots = await BARBApiService.getAdvertisingSpots({
+                advertiser: campaign.advertiser_name || '',
+                brand: campaign.brand_name || '',
+                agency: campaign.agency_name || '',
+                dateFrom: '2024-12-24',
+                dateTo: '2024-12-31'
+              });
+              let histPlanSpots = histSpots.filter((spot: any) => {
+                const spotName: string = spot.station?.station_name || '';
+                return spotName && isSameStation(plan.group_name, spotName);
+              });
+              let hAudience = 0;
+              let hTarget = 0;
+              for (const spot of histPlanSpots) {
+                const views: any[] = spot.audience_views || [];
+                let view = views.find(v => matchesAudience(plan.buying_audience || '', v.description));
+                if (!view) {
+                  view = views.reduce((best, cur) => (cur?.audience_size_hundreds || 0) > (best?.audience_size_hundreds || 0) ? cur : best, undefined as any);
+                }
+                if (view && view.audience_size_hundreds && view.audience_size_hundreds > 0) {
+                  hAudience += view.audience_size_hundreds;
+                  if (view.audience_target_size_hundreds && view.audience_target_size_hundreds > 0) {
+                    hTarget += view.audience_target_size_hundreds;
                   }
                 }
               }
+              if (hAudience > 0) {
+                if (hTarget > 0) {
+                  actual_tvr = (hAudience / hTarget) * 100;
+                } else {
+                  const { BARBApiService: BA2 } = await import('./barbApiService');
+                  const universe = BA2.getUniverseSize(plan.buying_audience);
+                  actual_tvr = universe > 0 ? (hAudience / universe) * 100 : 0;
+                }
+              }
+            } catch (e) {
+              console.warn('Historical fallback failed for plan', plan.group_name, e);
             }
-          });
-
-          // Calculate average TVR across all valid spots
-          let tvr = 0;
-          
-          console.log(`🧮 Plan vs Actual - TVR calculation for ${stationName}:`, {
-            totalImpacts: totalImpacts.toLocaleString(),
-            totalTVR: totalTVR.toFixed(2),
-            validSpotsCount: validSpotsCount,
-            spotsCount: stationSpots.length,
-            filteredSpotsCount: filteredStationSpots.length
-          });
-          
-          if (validSpotsCount > 0) {
-            // Calculate average TVR across all valid spots (proper methodology)
-            tvr = totalTVR / validSpotsCount;
-            console.log(`📊 Plan vs Actual - ${stationName}: Average TVR across ${validSpotsCount} spots = ${tvr.toFixed(2)}%`);
-          } else if (totalImpacts > 0) {
-            // Fallback to original calculation if no valid individual spot calculations
-            // Use universe size in hundreds to match impression scaling
-            const universeSize = 270000; // UK households (27M/100) - match impression scaling
-            tvr = (totalImpacts / universeSize) * 100;
-            console.log(`📊 Plan vs Actual - ${stationName}: Using fallback universe (${universeSize.toLocaleString()}) - TVR = ${tvr.toFixed(2)}%`);
           }
 
-          stationTVRResults.set(stationName, {
-            tvr: Math.round(tvr * 10) / 10, // Round to 1 decimal place
-            impacts: totalImpacts,
-            spots_count: stationSpots.length,
-            total_duration: totalDuration
-          });
+          const roundedTVR = Math.round(actual_tvr * 10) / 10;
+          const tvrVariance = plan.deal_tvr ? roundedTVR - plan.deal_tvr : undefined;
+          const valueVariance = tvrVariance !== undefined && plan.cpt ? tvrVariance * plan.cpt : undefined;
 
-        } catch (error) {
-          console.error(`Error calculating TVR for station ${stationName}:`, error);
-          stationTVRResults.set(stationName, {
-            tvr: 0,
-            impacts: 0,
+          plansWithActuals.push({
+            ...plan,
+            actual_tvr: roundedTVR,
+            actual_value: 0,
+            spots_count: counted,
+            impacts: Math.round(sumAudienceHundreds * 100), // back to people
+            tvr_variance: tvrVariance,
+            value_variance: valueVariance
+          });
+        } catch (err) {
+          console.error(`Error calculating TVR for plan ${plan.group_name}:`, err);
+          plansWithActuals.push({
+            ...plan,
+            actual_tvr: 0,
+            actual_value: 0,
             spots_count: 0,
-            total_duration: 0
+            impacts: 0,
+            tvr_variance: plan.deal_tvr ? 0 - plan.deal_tvr : undefined,
+            value_variance: plan.cpt && plan.deal_tvr ? (0 - plan.deal_tvr) * plan.cpt : undefined
           });
         }
-      }
-
-      // Map TVR results back to plans
-      const plansWithActuals: CampaignPlanWithActuals[] = plans.map((plan) => {
-        const tvrResult = stationTVRResults.get(plan.group_name) || {
-          tvr: 0,
-          impacts: 0,
-          spots_count: 0,
-          total_duration: 0
-        };
-
-            const actual_tvr = tvrResult.tvr;
-            const tvrVariance = actual_tvr && plan.deal_tvr ? actual_tvr - plan.deal_tvr : undefined;
-            const valueVariance = tvrVariance !== undefined && plan.cpt ? tvrVariance * plan.cpt : undefined;
-
-            return {
-              ...plan,
-              actual_tvr: actual_tvr || 0,
-              actual_value: 0,
-              spots_count: tvrResult.spots_count || 0,
-              impacts: tvrResult.impacts || 0,
-              tvr_variance: tvrVariance,
-              value_variance: valueVariance
-            };
-      });
-
-      // Check if we got sufficient data - if not, fall back to original method
-      const stationsWithData = Array.from(stationTVRResults.values()).filter(result => result.spots_count > 0).length;
-      const totalStations = uniqueStations.length;
-      
-      if (stationsWithData < totalStations * 0.5) { // If less than 50% of stations have data
-        // Fall back to original method for missing stations
-        return await this.loadCampaignActualsOriginal(campaignId);
       }
 
       return plansWithActuals;

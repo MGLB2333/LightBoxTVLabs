@@ -114,105 +114,11 @@ const AdGenerator: React.FC = () => {
 
   const setBanner = useSetBanner();
 
-  // Generate Veo prompt from brief
+  // Generate video - restricted
   const generateVideo = async () => {
-    if (!generatedBrief) return;
-
-    setIsGeneratingVideo(true);
-    setError(null);
-
-    try {
-      const prompt = generateVeoPrompt(generatedBrief);
-      const result = await veoService.generateVideo(prompt, {
-        aspectRatio: '16:9',
-        duration: 6,
-        style: 'commercial'
-      });
-      
-      setVideoGenerationJob({
-        jobId: result.jobId,
-        status: result.status,
-        videoUrl: result.videoUrl,
-        progress: 0
-      });
-
-      // Start polling for status updates
-      pollVideoStatus(result.jobId);
-
-    } catch (error: any) {
-      console.error('Error generating video:', error);
-      setError('Failed to generate video. Please try again.');
-      setIsGeneratingVideo(false);
-    }
+    setShowRestrictionModal(true);
   };
 
-  const pollVideoStatus = async (jobId: string) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const status = await veoService.checkVideoStatus(jobId);
-        
-        setVideoGenerationJob(prev => prev ? {
-          ...prev,
-          status: status.status,
-          videoUrl: status.videoUrl,
-          progress: status.progress
-        } : null);
-
-        if (status.status === 'completed' || status.status === 'failed') {
-          clearInterval(pollInterval);
-          setIsGeneratingVideo(false);
-          
-          if (status.status === 'completed' && status.videoUrl) {
-            setCurrentVideo(status.videoUrl);
-            setGeneratedVideos(prev => [...prev, status.videoUrl!]);
-          }
-        }
-      } catch (error) {
-        console.error('Error polling video status:', error);
-        clearInterval(pollInterval);
-        setIsGeneratingVideo(false);
-      }
-    }, 2000); // Poll every 2 seconds
-  };
-
-  const generateVeoPrompt = (brief: CreativeBrief): string => {
-    return `Create a short video advertisement (6-15 seconds) with the following specifications:
-
-**Product Summary:** ${brief.productSummary}
-
-**Key Benefit:** ${brief.keyBenefit}
-
-**Target Audience:** ${brief.targetAudience}
-
-**Proof Points:** ${brief.proofPoints.join(', ')}
-
-${brief.offer ? `**Special Offer:** ${brief.offer}` : ''}
-
-**Primary Call to Action:** ${brief.primaryCTA}
-
-**Tone:** ${brief.tone}
-
-**Video Requirements:**
-- Duration: 6-15 seconds
-- Aspect Ratio: 9:16 (vertical) for mobile/social
-- Style: ${brief.tone} tone
-- Focus: Show the product in action with clear value proposition
-- End with strong call to action
-
-**Visual Guidelines:**
-- High-quality, professional footage
-- Clear product visibility
-- Engaging visuals that match the ${brief.tone} tone
-- Smooth transitions and pacing
-- Text overlays for key benefits if needed
-
-**Audio Guidelines:**
-- Upbeat, professional music
-- Clear voiceover if needed
-- Sound effects that enhance the message
-
-Create a compelling video that drives action and clearly communicates the value proposition to the target audience.`;
-  };
 
   // Set banner content
   useEffect(() => {
@@ -597,22 +503,22 @@ Create a compelling video that drives action and clearly communicates the value 
               
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">This is the complete prompt that will be sent to Veo for video generation:</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Video generation is currently restricted</h3>
                 </div>
 
                 <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
                   <pre className="text-green-400 text-sm whitespace-pre-wrap font-mono">
-                    {generatedBrief ? generateVeoPrompt(generatedBrief) : 'No brief available'}
+                    Contact LightBoxTV representative for access to video generation features.
                   </pre>
                 </div>
 
                 <div className="flex items-center justify-between bg-blue-50 rounded-lg p-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-blue-700">Ready to send to Veo 3</span>
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm text-blue-700">Restricted Access</span>
                   </div>
                   <span className="text-xs text-blue-600">
-                    {generatedBrief ? generateVeoPrompt(generatedBrief).length : 0} characters
+                    Contact support for access
                   </span>
                 </div>
               </div>
@@ -627,13 +533,11 @@ Create a compelling video that drives action and clearly communicates the value 
                   </button>
                   <button
                     onClick={() => {
-                      if (generatedBrief) {
-                        navigator.clipboard.writeText(generateVeoPrompt(generatedBrief));
-                      }
+                      navigator.clipboard.writeText('Contact LightBoxTV representative for access to video generation features.');
                     }}
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   >
-                    Copy Prompt
+                    Copy Message
                   </button>
                 </div>
                 <button

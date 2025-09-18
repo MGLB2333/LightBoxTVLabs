@@ -1,7 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize the Google AI client
-const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY || 'AIzaSyAV3X8aROEHdT1xX4_vM8ivNJRzfDizRaE';
+const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY;
+
+if (!apiKey) {
+  throw new Error('VITE_GOOGLE_AI_API_KEY is not set');
+}
+
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Types for our API responses

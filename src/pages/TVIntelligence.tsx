@@ -81,7 +81,7 @@ const TVIntelligence: React.FC = () => {
         duration: Math.round(network.total_duration / 60),
         advertisers: network.unique_advertisers,
         value: network.spot_count, // For pie chart
-        color: ['#02b3e5', '#3bc8ea', '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'][index % 8]
+        color: ['#02b3e5', '#3bc8ea', '#1e88e5', '#1565c0', '#0d47a1', '#0277bd', '#01579b', '#004ba0'][index % 8]
       }));
   };
 
@@ -123,7 +123,7 @@ const TVIntelligence: React.FC = () => {
       .map(([network, count], index) => ({
         name: network,
         value: count,
-        color: ['#02b3e5', '#3bc8ea', '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'][index % 8]
+        color: ['#02b3e5', '#3bc8ea', '#1e88e5', '#1565c0', '#0d47a1', '#0277bd', '#01579b', '#004ba0'][index % 8]
       }));
   };
 
@@ -134,7 +134,7 @@ const TVIntelligence: React.FC = () => {
         name: daypart.daypart,
         spots: daypart.spot_count,
         duration: Math.round(daypart.total_duration / 60),
-        color: ['#02b3e5', '#3bc8ea', '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'][index % 8]
+        color: ['#02b3e5', '#3bc8ea', '#1e88e5', '#1565c0', '#0d47a1', '#0277bd', '#01579b', '#004ba0'][index % 8]
       }));
   };
 
@@ -328,13 +328,13 @@ const TVIntelligence: React.FC = () => {
   }, [setBanner, activeTab, selectedCampaign, filters]);
 
   const renderCampaignAnalysis = () => (
-    <div className="flex h-full">
+    <div className="grid grid-cols-[16rem_1fr] h-full">
       {/* Left Sidebar */}
-      <div className="w-64 flex-shrink-0">
+      <div className="w-64">
         <div className="bg-gray-50 rounded-l-sm border border-gray-200 border-r-0 h-full">
           {/* Campaign Selector */}
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Campaign</h3>
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Campaign</h3>
             <select
               value={selectedCampaign}
               onChange={(e) => setSelectedCampaign(e.target.value)}
@@ -349,9 +349,9 @@ const TVIntelligence: React.FC = () => {
           </div>
 
           {/* Date Range */}
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Date Range</h3>
-            <div className="space-y-2">
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Date Range</h3>
+            <div className="space-y-1">
           <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
                 <input
@@ -380,9 +380,9 @@ const TVIntelligence: React.FC = () => {
       </div>
 
           {/* Filters */}
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Filters</h3>
-            <div className="space-y-3">
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Filters</h3>
+            <div className="space-y-2">
               {/* Media Type */}
                 <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Media Type</label>
@@ -482,52 +482,52 @@ const TVIntelligence: React.FC = () => {
               <p className="text-sm text-gray-600">Showing {mapOverlay} data across {postcodeData.length} postcode sectors</p>
         </div>
 
-            {/* Compact Summary Metrics */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <Eye className="w-4 h-4 text-[#02b3e5]" />
-                  <span className="text-xs font-medium text-gray-700">Total Impressions</span>
-                </div>
-                <div className="text-lg font-bold text-[#02b3e5]">
-                  {summaryMetrics.totalImpressions.toLocaleString()}
-              </div>
-            </div>
+                         {/* Compact Summary Metrics - Hidden for now */}
+             {/* <div className="grid grid-cols-4 gap-4">
+               <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                 <div className="flex items-center gap-2 mb-1">
+                   <Eye className="w-4 h-4 text-[#02b3e5]" />
+                   <span className="text-xs font-medium text-gray-700">Total Impressions</span>
+                 </div>
+                 <div className="text-lg font-bold text-[#02b3e5]">
+                   {summaryMetrics.totalImpressions.toLocaleString()}
+               </div>
+             </div>
 
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <TargetIcon className="w-4 h-4 text-[#02b3e5]" />
-                  <span className="text-xs font-medium text-gray-700">Target Audience</span>
-                </div>
-                <div className="text-lg font-bold text-[#02b3e5]">
-                  {summaryMetrics.targetAudienceReached.toLocaleString()}
-              </div>
-            </div>
+               <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                 <div className="flex items-center gap-2 mb-1">
+                   <TargetIcon className="w-4 h-4 text-[#02b3e5]" />
+                   <span className="text-xs font-medium text-gray-700">Target Audience</span>
+                 </div>
+                 <div className="text-lg font-bold text-[#02b3e5]">
+                   {summaryMetrics.targetAudienceReached.toLocaleString()}
+               </div>
+             </div>
 
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUpIcon className="w-4 h-4 text-[#02b3e5]" />
-                  <span className="text-xs font-medium text-gray-700">Opportunity Score</span>
-          </div>
-                <div className="text-lg font-bold text-[#02b3e5]">
-                  {summaryMetrics.averageOpportunityScore.toFixed(1)}
-        </div>
-      </div>
+               <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                 <div className="flex items-center gap-2 mb-1">
+                   <TrendingUpIcon className="w-4 h-4 text-[#02b3e5]" />
+                   <span className="text-xs font-medium text-gray-700">Opportunity Score</span>
+           </div>
+                 <div className="text-lg font-bold text-[#02b3e5]">
+                   {summaryMetrics.averageOpportunityScore.toFixed(1)}
+         </div>
+       </div>
 
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <UsersIcon className="w-4 h-4 text-[#02b3e5]" />
-                  <span className="text-xs font-medium text-gray-700">Underexposed Areas</span>
-          </div>
-                <div className="text-lg font-bold text-[#02b3e5]">
-                  {summaryMetrics.underexposedPostcodes}
-                        </div>
-              </div>
-                    </div>
-                  </div>
+               <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                 <div className="flex items-center gap-2 mb-1">
+                   <UsersIcon className="w-4 h-4 text-[#02b3e5]" />
+                   <span className="text-xs font-medium text-gray-700">Underexposed Areas</span>
+           </div>
+                 <div className="text-lg font-bold text-[#02b3e5]">
+                   {summaryMetrics.underexposedPostcodes}
+                         </div>
+               </div>
+                     </div> */}
+                   </div>
                   
           {/* Map Content */}
-          <div className="px-6 py-6">
+          <div className="px-4 py-4">
             <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
               {loading ? (
                 <div className="text-center">
@@ -541,15 +541,15 @@ const TVIntelligence: React.FC = () => {
                   <p className="text-gray-600 mb-4">Map visualization with {postcodeData.length} postcode sectors</p>
                   <div className="flex items-center justify-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
+                      <div className="w-4 h-4 bg-[#02b3e5] rounded"></div>
                       <span>High {mapOverlay}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                      <div className="w-4 h-4 bg-[#02b3e5]/60 rounded"></div>
                       <span>Medium {mapOverlay}</span>
                   </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded"></div>
+                      <div className="w-4 h-4 bg-[#02b3e5]/30 rounded"></div>
                       <span>Low {mapOverlay}</span>
                       </div>
                       </div>
@@ -560,27 +560,27 @@ const TVIntelligence: React.FC = () => {
                 </div>
                 
         {/* Top Postcodes Table */}
-        <div className="bg-white rounded-sm border border-gray-200 mt-6">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-white rounded-sm border border-gray-200 mt-4">
+          <div className="px-4 py-3 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Top 5 Postcodes by Exposure</h3>
                   </div>
           <div className="overflow-x-auto">
             <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Postcode
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Impressions
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Reach %
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Opportunity Score
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
               </tr>
@@ -588,27 +588,27 @@ const TVIntelligence: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {summaryMetrics.topPostcodes.map((postcode, index) => (
                   <tr key={postcode.postcode} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{postcode.postcode}</div>
                       <div className="text-xs text-gray-500">{postcode.sector}</div>
                   </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
                       {postcode.impressions.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
                       {postcode.reachPercentage.toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
                       {postcode.opportunityScore.toFixed(1)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-4 py-2 whitespace-nowrap text-center">
                       {postcode.isIncremental && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-[#02b3e5]/10 text-[#02b3e5]">
                           Incremental
                         </span>
                       )}
                       {postcode.isLookalike && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-[#02b3e5]/10 text-[#02b3e5]">
                           Lookalike
                         </span>
                       )}
@@ -624,7 +624,7 @@ const TVIntelligence: React.FC = () => {
   );
 
   const renderShareOfVoice = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-[#02b3e5]" />
@@ -633,10 +633,10 @@ const TVIntelligence: React.FC = () => {
         <>
           {/* Share of Voice Chart */}
           <div className="bg-white rounded-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-4 py-3 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Network Distribution</h3>
             </div>
-            <div className="px-6 py-6">
+            <div className="px-4 py-4">
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
@@ -663,10 +663,10 @@ const TVIntelligence: React.FC = () => {
 
           {/* Network Performance Chart */}
           <div className="bg-white rounded-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-4 py-3 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Network Performance</h3>
             </div>
-            <div className="px-6 py-6">
+            <div className="px-4 py-4">
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsBarChart data={processNetworkChartData(networkStats)}>
@@ -1138,15 +1138,19 @@ const TVIntelligence: React.FC = () => {
   );
 
   const renderSpotDetails = () => (
-    <div className="space-y-6">
-      {/* Filters */}
-      <div className="bg-white rounded-md border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Spot Details & Filters</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Network</label>
+    <div className="grid grid-cols-[16rem_1fr] h-full">
+      {/* Left Sidebar */}
+      <div className="w-64">
+        <div className="bg-gray-50 rounded-l-sm border border-gray-200 border-r-0 h-full">
+          {/* Filters */}
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Filters</h3>
+          </div>
+          
+          <div className="px-3 py-2 border-b border-gray-200">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Network</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
               value={legacyFilters.network}
               onChange={(e) => setLegacyFilters(prev => ({ ...prev, network: e.target.value }))}
             >
@@ -1154,10 +1158,11 @@ const TVIntelligence: React.FC = () => {
               {/* We'll populate this dynamically */}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Advertiser</label>
+          
+          <div className="px-3 py-2 border-b border-gray-200">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Advertiser</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
               value={legacyFilters.advertiser}
               onChange={(e) => setLegacyFilters(prev => ({ ...prev, advertiser: e.target.value }))}
             >
@@ -1165,10 +1170,11 @@ const TVIntelligence: React.FC = () => {
               {/* We'll populate this dynamically */}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+          
+          <div className="px-3 py-2 border-b border-gray-200">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Brand</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
               value={legacyFilters.brand}
               onChange={(e) => setLegacyFilters(prev => ({ ...prev, brand: e.target.value }))}
             >
@@ -1176,87 +1182,99 @@ const TVIntelligence: React.FC = () => {
               {/* We'll populate this dynamically */}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Daypart</label>
+          
+          <div className="px-3 py-2 border-b border-gray-200">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Daypart</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
               value={legacyFilters.daypart}
               onChange={(e) => setLegacyFilters(prev => ({ ...prev, daypart: e.target.value }))}
             >
               <option value="">All Dayparts</option>
               {/* We'll populate this dynamically */}
             </select>
-        </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+          </div>
+          
+                    <div className="px-3 py-2 border-b border-gray-200">
+            <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
               value={legacyFilters.city}
               onChange={(e) => setLegacyFilters(prev => ({ ...prev, city: e.target.value }))}
             >
               <option value="">All Cities</option>
               {/* We'll populate this dynamically */}
             </select>
-      </div>
           </div>
         </div>
-
-      {/* Spots Table */}
-        <div className="bg-white rounded-md border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Spot Details</h3>
-          <div className="text-sm text-gray-500">
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading...
-            </div>
-            ) : (
-              `${spots.length.toLocaleString()} spots found`
-            )}
-        </div>
       </div>
+
+      {/* Main Content */}
+      <div className="bg-white border border-gray-200 rounded-r-sm min-w-0 max-w-6xl">
+        {/* Spots Table */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Spot Details</h3>
+            <div className="text-sm text-gray-500">
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading...
+              </div>
+              ) : (
+                `${spots.length.toLocaleString()} spots found`
+              )}
+          </div>
+        </div>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-[#02b3e5]" />
         </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="h-96 overflow-auto border border-gray-200 rounded-md">
+            <div className="min-w-[1400px]">
+              <table className="w-full divide-y divide-gray-200 table-fixed">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Network</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Advertiser</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daypart</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buy Type</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Network</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Advertiser</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Brand</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Programme</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Daypart</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Duration</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">City</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Buy Type</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {spots.slice(0, 100).map((spot) => (
                   <tr key={spot._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 w-32">
                       {spot.network || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                       {spot.advertiser || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                       {spot.brand || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 w-48">
+                      <div className="truncate" title={spot.prior_title || '-'}>
+                        {spot.prior_title || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                       {spot.daypart || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                       {spot.duration ? `${Math.round(spot.duration / 60)}s` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                       {spot.city || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                       {spot.buy_type || '-'}
                     </td>
                   </tr>
@@ -1264,10 +1282,13 @@ const TVIntelligence: React.FC = () => {
               </tbody>
             </table>
             </div>
+          </div>
         )}
       </div>
     </div>
   );
+
+
 
   return (
     <div className="w-full space-y-6">

@@ -16,6 +16,10 @@ import Audience from './pages/analytics/Audience';
 import Reach from './pages/analytics/Reach';
 import YouTubeAnalytics from './pages/analytics/YouTube';
 import YouTubeCuration from './pages/YouTubeCuration';
+import AdGenerator from './pages/AdGenerator';
+import AdTagTester from './pages/AdTagTester';
+import MagniteAPI from './pages/MagniteAPI';
+import DemandTagAnalytics from './pages/DemandTagAnalytics';
 import TVIntelligence from './pages/TVIntelligence';
 import TVDeliveryMonitor from './pages/TVDeliveryMonitor';
 import BARBDataPuller from './pages/BARBDataPuller';
@@ -60,6 +64,10 @@ function App() {
           </Route>
           <Route path="integrations" element={<Integrations />} />
           <Route path="youtube-curation" element={<YouTubeCuration />} />
+          <Route path="ad-generator" element={<AdGenerator />} />
+          <Route path="ad-tag-tester" element={<AdTagTester />} />
+          <Route path="magnite-api" element={<MagniteAPI />} />
+          <Route path="demand-tag/:id" element={<DemandTagAnalytics />} />
                       <Route path="tv-intelligence" element={<TVIntelligence />} />
             <Route path="tv-delivery-monitor" element={<TVDeliveryMonitor />} />
             <Route path="barb-data-puller" element={<BARBDataPuller />} />

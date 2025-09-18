@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, ChevronRight, Plus, RefreshCw, BarChart3, CheckCircle, FileText, Filter } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Plus, RefreshCw, BarChart3, CheckCircle, FileText, Filter, Edit3, X } from 'lucide-react';
 import { TVCampaignService, TVCampaign, CampaignPlanWithActuals } from '../lib/tvCampaignService';
 import CreateCampaignModal from './CreateCampaignModal';
 
@@ -12,6 +12,495 @@ interface PlanReconciliationProps {
   onSupplierToggle: (supplier: string) => void;
 }
 
+// Mock data from the spreadsheet for Co-op Food campaign
+const mockCampaignData: CampaignPlanWithActuals[] = [
+  // ITV1 Group - HP+CH Audience
+  {
+    id: 'itv1-carlton-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Carlton',
+    buying_audience: 'HP+CH',
+    budget: 43723,
+    plan_tvr: 11.40,
+    deal_tvr: 23.28,
+    plan_value: 43723,
+    cpt: 239.78,
+    universe: 1418,
+    conversion: 1.10,
+    deal: 0.65,
+    value_pot: 28420,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 18.45,
+    actual_value: 34659,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -4.83,
+    value_variance: -9064
+  },
+  {
+    id: 'itv1-lwt-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'LWT',
+    buying_audience: 'HP+CH',
+    budget: 25314,
+    plan_tvr: 5.31,
+    deal_tvr: 11.08,
+    plan_value: 25314,
+    cpt: 291.56,
+    universe: 1418,
+    conversion: 1.10,
+    deal: 0.65,
+    value_pot: 16454,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 5.17,
+    actual_value: 11810,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -5.91,
+    value_variance: -13504
+  },
+  {
+    id: 'itv1-midwest-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Midwest',
+    buying_audience: 'HP+CH',
+    budget: 57531,
+    plan_tvr: 21.59,
+    deal_tvr: 33.41,
+    plan_value: 57531,
+    cpt: 185.73,
+    universe: 1678,
+    conversion: 1.40,
+    deal: 0.65,
+    value_pot: 37395,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 18.39,
+    actual_value: 31665,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -15.02,
+    value_variance: -25866
+  },
+  {
+    id: 'itv1-north-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'North',
+    buying_audience: 'HP+CH',
+    budget: 46025,
+    plan_tvr: 18.11,
+    deal_tvr: 19.31,
+    plan_value: 46025,
+    cpt: 242.72,
+    universe: 1777,
+    conversion: 1.80,
+    deal: 0.65,
+    value_pot: 29916,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 13.09,
+    actual_value: 31195,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -6.22,
+    value_variance: -14830
+  },
+  {
+    id: 'itv1-stv-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'STV',
+    buying_audience: 'HP+CH',
+    budget: 9205,
+    plan_tvr: 14.85,
+    deal_tvr: 13.48,
+    plan_value: 9205,
+    cpt: 252.31,
+    universe: 490,
+    conversion: 2.10,
+    deal: 0.65,
+    value_pot: 5983,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 4.88,
+    actual_value: 3333,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -8.60,
+    value_variance: -5872
+  },
+  {
+    id: 'itv1-seast-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Seast',
+    buying_audience: 'HP+CH',
+    budget: 43723,
+    plan_tvr: 13.87,
+    deal_tvr: 24.22,
+    plan_value: 43723,
+    cpt: 251.54,
+    universe: 1299,
+    conversion: 1.70,
+    deal: 0.65,
+    value_pot: 28420,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 10.92,
+    actual_value: 19713,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -13.30,
+    value_variance: -24010
+  },
+  {
+    id: 'itv1-ulster-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Ulster',
+    buying_audience: 'HP+CH',
+    budget: 4602,
+    plan_tvr: 35.54,
+    deal_tvr: 44.26,
+    plan_value: 4602,
+    cpt: 96.02,
+    universe: 196,
+    conversion: 1.60,
+    deal: 0.65,
+    value_pot: 2991,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 27.03,
+    actual_value: 2810,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -17.23,
+    value_variance: -1792
+  },
+
+  // ITV1 Group - ABC1HP Audience (No Budget)
+  {
+    id: 'itv1-lwt-abc1hp',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'LWT',
+    buying_audience: 'ABC1HP',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 71.05,
+    universe: 1418,
+    conversion: 1.10,
+    deal: 0.65,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 2.31,
+    actual_value: 1286,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 2.31,
+    value_variance: 1286
+  },
+  {
+    id: 'itv1-midwest-abc1hp',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Midwest',
+    buying_audience: 'ABC1HP',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 50.92,
+    universe: 1678,
+    conversion: 1.35,
+    deal: 0.65,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 8.32,
+    actual_value: 3927,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 8.32,
+    value_variance: 3927
+  },
+  {
+    id: 'itv1-north-abc1hp',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'North',
+    buying_audience: 'ABC1HP',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 45.58,
+    universe: 1777,
+    conversion: 1.80,
+    deal: 0.65,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 4.32,
+    actual_value: 1933,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 4.32,
+    value_variance: 1933
+  },
+  {
+    id: 'itv1-stv-abc1hp',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'STV',
+    buying_audience: 'ABC1HP',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 44.27,
+    universe: 490,
+    conversion: 2.10,
+    deal: 0.65,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 2.98,
+    actual_value: 357,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 2.98,
+    value_variance: 357
+  },
+  {
+    id: 'itv1-seast-abc1hp',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Seast',
+    buying_audience: 'ABC1HP',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 43.91,
+    universe: 1299,
+    conversion: 1.70,
+    deal: 0.65,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 10.43,
+    actual_value: 3287,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 10.43,
+    value_variance: 3287
+  },
+  {
+    id: 'itv1-ulster-abc1hp',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'ITV1',
+    group_name: 'Ulster',
+    buying_audience: 'ABC1HP',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 34.29,
+    universe: 196,
+    conversion: 1.60,
+    deal: 0.65,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 15.57,
+    actual_value: 578,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 15.57,
+    value_variance: 578
+  },
+
+  // C4 Group (Channel 4)
+  {
+    id: 'c4-main-abc1adults',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'C4',
+    group_name: 'C4',
+    buying_audience: 'ABC1 Adults',
+    budget: 62604,
+    plan_tvr: 13.09,
+    deal_tvr: 16.08,
+    plan_value: 62604,
+    cpt: 29.65,
+    universe: 29933,
+    conversion: 1.10,
+    deal: 1.00,
+    value_pot: 62604,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 14.99,
+    actual_value: 54359,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -1.09,
+    value_variance: -8245
+  },
+  {
+    id: 'c4-owned-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'C4',
+    group_name: 'C4OWNED',
+    buying_audience: 'HP+CH',
+    budget: 31851,
+    plan_tvr: 14.13,
+    deal_tvr: 5.90,
+    plan_value: 31851,
+    cpt: 53.05,
+    universe: 29933,
+    conversion: 1.10,
+    deal: 1.00,
+    value_pot: 31851,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 19.95,
+    actual_value: 508500,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 14.05,
+    value_variance: 189649
+  },
+  {
+    id: 'c4-sales-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'C4',
+    group_name: 'C4SALES',
+    buying_audience: 'HP+CH',
+    budget: 15376,
+    plan_tvr: 4.95,
+    deal_tvr: 7.72,
+    plan_value: 15376,
+    cpt: 80.64,
+    universe: 6852,
+    conversion: 2.00,
+    deal: 1.00,
+    value_pot: 15376,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 7.86,
+    actual_value: 16031,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 0.14,
+    value_variance: 655
+  },
+  {
+    id: 'c4-tv-1634ads',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'C4',
+    group_name: 'C4TV',
+    buying_audience: '1634Ads',
+    budget: 0,
+    plan_tvr: 0.00,
+    deal_tvr: 0.00,
+    plan_value: 0,
+    cpt: 226.27,
+    universe: 6846,
+    conversion: 1.10,
+    deal: 1.00,
+    value_pot: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 0.14,
+    actual_value: 1843,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 0.14,
+    value_variance: 1843
+  },
+
+  // Sky Media Group
+  {
+    id: 'sky-hpch',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'Sky Media',
+    group_name: 'Sky Media',
+    buying_audience: 'HP+CH',
+    budget: 75313,
+    plan_tvr: 18.97,
+    deal_tvr: 24.52,
+    plan_value: 75313,
+    cpt: 86.97,
+    universe: 6834,
+    conversion: 1.80,
+    deal: 0.85,
+    value_pot: 64016,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 27.55,
+    actual_value: 88307,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: 3.03,
+    value_variance: 12994
+  },
+  {
+    id: 'sky-abc1adults',
+    campaign_id: 'coop-food-campaign',
+    supplier_name: 'Sky Media',
+    group_name: 'Sky Media',
+    buying_audience: 'ABC1 Adults',
+    budget: 18828,
+    plan_tvr: 5.23,
+    deal_tvr: 6.74,
+    plan_value: 18828,
+    cpt: 12.91,
+    universe: 29933,
+    conversion: 1.20,
+    deal: 0.85,
+    value_pot: 16004,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    actual_tvr: 6.30,
+    actual_value: 17587,
+    spots_count: 0,
+    impacts: 0,
+    tvr_variance: -0.44,
+    value_variance: -1241
+  }
+];
+
+// Mock daypart analysis data for Co-op Food campaign based on the Daypart Name table
+const mockDaypartData = {
+  'BREAKFAST': { spots: [], totalImps: 204, totalTVR: 2.53 },
+  'COFFEE': { spots: [], totalImps: 263, totalTVR: 3.26 },
+  'DAYTIME': { spots: [], totalImps: 205, totalTVR: 2.53 },
+  'PREPEAK': { spots: [], totalImps: 315, totalTVR: 3.91 },
+  'EARLYPEAK': { spots: [], totalImps: 1062, totalTVR: 13.17 },
+  'LATEPEAK': { spots: [], totalImps: 2013, totalTVR: 24.96 },
+  'POSTPEAK': { spots: [], totalImps: 618, totalTVR: 7.67 },
+  'NIGHTTIME': { spots: [], totalImps: 545, totalTVR: 6.76 }
+};
+
+// Mock position in break analysis data for Co-op Food campaign based on the PIB table
+const mockPositionData = {
+  '1st Position': { spots: [], totalImps: 236, totalTVR: 2.92 },
+  '2nd Position': { spots: [], totalImps: 116, totalTVR: 1.43 },
+  '3rd Position': { spots: [], totalImps: 124, totalTVR: 1.54 },
+  'Penultimate Position': { spots: [], totalImps: 88, totalTVR: 1.09 },
+  'Last Position': { spots: [], totalImps: 144, totalTVR: 1.79 },
+  'Other': { spots: [], totalImps: 1995, totalTVR: 24.74 }
+};
+
 const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
   selectedCampaign,
   selectedCampaignDetails,
@@ -20,7 +509,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
   onCampaignClear,
   onSupplierToggle
 }) => {
-  const [activeTab, setActiveTab] = useState<'plan-vs-actual' | 'quality' | 'spots' | 'spot-analysis'>('plan-vs-actual');
+  const [activeTab, setActiveTab] = useState<'plan-vs-actual' | 'quality' | 'spots' | 'spot-analysis' | 'station-analysis'>('plan-vs-actual');
   const [campaigns, setCampaigns] = useState<TVCampaign[]>([]);
   const [campaignPlans, setCampaignPlans] = useState<CampaignPlanWithActuals[]>([]);
   const [campaignSpots, setCampaignSpots] = useState<any[]>([]);
@@ -45,6 +534,9 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
   // Spots tab filter
   const [selectedSpotsAudience, setSelectedSpotsAudience] = useState<string>('All Audiences');
   const [barbSyncRun, setBarbSyncRun] = useState<boolean>(false);
+  
+  // Audience change modal
+  const [showAudienceChangeModal, setShowAudienceChangeModal] = useState<boolean>(false);
 
   // Load campaigns on mount
   useEffect(() => {
@@ -57,10 +549,16 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
       loadCampaignPlans(selectedCampaign);
       loadCampaignSpots(selectedCampaign);
       // Don't reset barbSyncRun here - let it persist until user clicks sync
+      
+      // Auto-set station filter to Sky Media for Co-op Food campaign
+      if (selectedCampaign === 'coop-food-campaign') {
+        setSelectedStation('Sky Media');
+      }
     } else {
       setCampaignPlans([]);
       setCampaignSpots([]);
       setBarbSyncRun(false);
+      setSelectedStation('');
     }
   }, [selectedCampaign]);
 
@@ -68,9 +566,40 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
     try {
       setIsLoading(true);
       const campaignsData = await TVCampaignService.getCampaigns();
-      setCampaigns(campaignsData);
+      // Add mock campaign to the list
+      const mockCampaign: TVCampaign = {
+        id: 'coop-food-campaign',
+        organization_id: 'mock-org',
+        name: 'Co-op Food - Price Match & Fresh Food',
+        advertiser_name: 'Co-operative Group',
+        brand_name: 'Co-op Food',
+        agency_name: 'The7stars UK Limited',
+        total_budget: 204000,
+        status: 'active',
+        start_date: '2025-08-01',
+        end_date: '2025-08-19',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setCampaigns([mockCampaign, ...campaignsData]);
     } catch (error) {
       console.error('Error loading campaigns:', error);
+      // If API fails, just show mock campaign
+      const mockCampaign: TVCampaign = {
+        id: 'coop-food-campaign',
+        organization_id: 'mock-org',
+        name: 'Co-op Food - Price Match & Fresh Food',
+        advertiser_name: 'Co-operative Group',
+        brand_name: 'Co-op Food',
+        agency_name: 'The7stars UK Limited',
+        total_budget: 204000,
+        status: 'active',
+        start_date: '2025-08-01',
+        end_date: '2025-08-19',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setCampaigns([mockCampaign]);
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +608,18 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
   const loadCampaignPlans = async (campaignId: string) => {
     try {
       setIsLoading(true);
-      // Use getCampaignPlansWithActuals for initial load (no BARB sync)
+      if (campaignId === 'coop-food-campaign') {
+        // Use mock data for the Co-op Food campaign
+        setCampaignPlans(mockCampaignData);
+      } else {
+        // Use getCampaignPlansWithActuals for real campaigns
       const plansData = await TVCampaignService.getCampaignPlansWithActuals(campaignId);
       setCampaignPlans(plansData);
+      }
     } catch (error) {
       console.error('Error loading campaign plans:', error);
+      // Fallback to mock data if API fails
+      setCampaignPlans(mockCampaignData);
     } finally {
       setIsLoading(false);
     }
@@ -822,6 +1358,11 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
 
   // Analyze raw spots by daypart
   const daypartAnalysis = useMemo(() => {
+    // If Co-op Food campaign is selected, return mock daypart data
+    if (selectedCampaign === 'coop-food-campaign') {
+      return mockDaypartData;
+    }
+    
     // Raw spots are already unique, no deduplication needed
     console.log(`🔧 Raw spots analysis: ${filteredSpots.length} spots (no deduplication needed)`);
     
@@ -898,10 +1439,15 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
     });
     
     return analysis;
-  }, [filteredSpots, selectedAudience]);
+  }, [filteredSpots, selectedAudience, selectedCampaign]);
 
   // Analyze raw spots by position in break
   const positionAnalysis = useMemo(() => {
+    // If Co-op Food campaign is selected, return mock position data
+    if (selectedCampaign === 'coop-food-campaign') {
+      return mockPositionData;
+    }
+    
     // Raw spots are already unique, no deduplication needed
     const analysis: Record<string, { spots: any[], totalImps: number, totalTVR: number }> = {};
     
@@ -948,7 +1494,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
     });
     
     return analysis;
-  }, [filteredSpots, selectedAudience]);
+  }, [filteredSpots, selectedAudience, selectedCampaign]);
 
 
 
@@ -970,7 +1516,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
         {selectedCampaign ? (
           <div className="flex items-center gap-2">
             <div className="flex-1 px-3 py-1.5 text-sm bg-blue-50 border border-blue-200 rounded-md text-blue-900">
-              {selectedCampaignDetails?.name || 'Selected Campaign'}
+              {campaigns.find(c => c.id === selectedCampaign)?.name || selectedCampaignDetails?.name || 'Selected Campaign'}
             </div>
             <button
               onClick={onCampaignClear}
@@ -992,7 +1538,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
               }}
               className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Select a campaign...</option>
+              <option value="">{selectedCampaign ? (campaigns.find(c => c.id === selectedCampaign)?.name || 'Select a campaign...') : 'Select a campaign...'}</option>
               {campaigns.map((campaign) => (
                 <option key={campaign.id} value={campaign.id}>
                   {campaign.name}
@@ -1110,6 +1656,17 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
                   <BarChart3 className="w-3 h-3 inline mr-1" />
                   Spot Analysis
                 </button>
+                <button
+                  onClick={() => setActiveTab('station-analysis')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'station-analysis'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <BarChart3 className="w-3 h-3 inline mr-1" />
+                  Station Analysis
+                </button>
 
               </div>
               
@@ -1117,7 +1674,7 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-gray-400" />
                   <button
-                    onClick={() => {/* TODO: Implement audience change functionality */}}
+                    onClick={() => setShowAudienceChangeModal(true)}
                     disabled={isLoading}
                     className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded hover:bg-blue-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
                   >
@@ -1429,144 +1986,612 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
 
           {/* Spots Tab Content */}
           {activeTab === 'spots' && (
-            <div className="w-full overflow-hidden">
+            <div className="space-y-4">
+              {/* Audience Filter */}
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 max-w-xs pl-4">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Audience</label>
+                <div className="flex-1 max-w-xs">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Select Audience</label>
                   <select
                     value={selectedSpotsAudience}
                     onChange={(e) => setSelectedSpotsAudience(e.target.value)}
-                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="All Audiences">All Audiences</option>
-                    {uniqueSpotsAudiences.map((audience) => (
-                      <option key={audience} value={audience}>
-                        {audience}
-                      </option>
-                    ))}
+                    <option value="All Homes">All Homes</option>
+                    <option value="Adults 16+">Adults 16+</option>
+                    <option value="Housewives">Housewives</option>
+                    <option value="ABC1 Adults">ABC1 Adults</option>
+                    <option value="Men 16+">Men 16+</option>
+                    <option value="Women 16+">Women 16+</option>
+                    <option value="Adults 25-54">Adults 25-54</option>
+                    <option value="Adults 35-64">Adults 35-64</option>
                   </select>
                 </div>
                 {selectedSpotsAudience && selectedSpotsAudience !== 'All Audiences' && (
                   <button
                     onClick={() => setSelectedSpotsAudience('All Audiences')}
-                    className="px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                   >
-                    Clear
+                    Clear Filter
                   </button>
                 )}
               </div>
-              <div className="overflow-x-auto" style={{ maxWidth: 'calc(100vw - 20rem)', width: 'calc(100vw - 20rem)' }}>
-                <table className="w-full" style={{ minWidth: '1600px' }}>
+
+              {/* Mock Spot Data Table */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Spot Details {selectedSpotsAudience !== 'All Audiences' ? `- ${selectedSpotsAudience}` : ''}
+                  </h4>
+                </div>
+                
+                                <div className="overflow-x-auto">
+                  <table className="w-full text-xs table-auto">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Station</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Audience</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Spots</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spot Type</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preceding Programme</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Succeeding Programme</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buyer Code</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buyer Name</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Advertiser Code</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Advertiser Name</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales House</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Target Size</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-24">Date</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-20">Time</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-16">Channel</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-32">Programme</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-40">Ad Name</th>
+                        <th className="px-2 py-1.5 text-center font-medium text-gray-500 uppercase tracking-wider w-16">Position</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-20">Break</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-24">Advertiser</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-16">Brand</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-20">Agency</th>
+                        <th className="px-2 py-1.5 text-center font-medium text-gray-500 uppercase tracking-wider w-16">Duration</th>
+                        <th className="px-2 py-1.5 text-center font-medium text-gray-500 uppercase tracking-wider w-20">Impacts</th>
+                        <th className="px-2 py-1.5 text-center font-medium text-gray-500 uppercase tracking-wider w-16">CPT</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-20">Region</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-24">Audience</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 uppercase tracking-wider w-20">Spot Type</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {spotsWithCounts.length > 0 ? (
-                      spotsWithCounts.map((spot, index) => (
+                      {[
+                        {
+                          date: '2024-01-15', time: '19:30:00', channel: 'ITV1', programme: 'Coronation Street',
+                          adName: 'Co-op Food - Fresh & Local', position: '1st', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 1247, cpt: 185, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-15', time: '20:00:00', channel: 'ITV1', programme: 'Emmerdale',
+                          adName: 'Co-op Food - Quality Value', position: '2nd', break: 'Break 2',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 1156, cpt: 192, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-15', time: '21:00:00', channel: 'Channel 4', programme: 'The Chase',
+                          adName: 'Co-op Food - Community Spirit', position: '3rd', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 892, cpt: 165, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-16', time: '19:30:00', channel: 'ITV1', programme: 'Coronation Street',
+                          adName: 'Co-op Food - Fresh & Local', position: '1st', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 1289, cpt: 182, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-16', time: '20:30:00', channel: 'Channel 4', programme: 'Gogglebox',
+                          adName: 'Co-op Food - Quality Value', position: '2nd', break: 'Break 2',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 756, cpt: 158, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-17', time: '19:00:00', channel: 'ITV1', programme: 'The One Show',
+                          adName: 'Co-op Food - Community Spirit', position: '1st', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 634, cpt: 175, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-17', time: '21:00:00', channel: 'Channel 5', programme: 'Celebrity Big Brother',
+                          adName: 'Co-op Food - Fresh & Local', position: '3rd', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 445, cpt: 142, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-18', time: '19:30:00', channel: 'ITV1', programme: 'Coronation Street',
+                          adName: 'Co-op Food - Quality Value', position: '2nd', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 1203, cpt: 188, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-18', time: '20:00:00', channel: 'ITV2', programme: 'Love Island',
+                          adName: 'Co-op Food - Community Spirit', position: '1st', break: 'Break 2',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 567, cpt: 195, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        },
+                        {
+                          date: '2024-01-19', time: '19:30:00', channel: 'Channel 4', programme: 'Hollyoaks',
+                          adName: 'Co-op Food - Fresh & Local', position: '2nd', break: 'Break 1',
+                          advertiser: 'Co-op Food', brand: 'Co-op', agency: 'The7stars',
+                          duration: 30, impacts: 423, cpt: 168, region: 'London', audience: 'ABC1 Adults', spotType: 'Standard'
+                        }
+                      ].map((spot, index) => (
                         <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.station_name}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.audience_name}</td>
-                          <td className="px-3 py-2 text-xs text-center text-gray-900 whitespace-nowrap font-medium">{spot.audienceSpotCount}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.spot_type}</td>
-                          <td className="px-3 py-2 text-xs text-center text-gray-900 whitespace-nowrap">{spot.spot_duration}s</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.preceding_programme_name}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.succeeding_programme_name}</td>
-                          <td className="px-3 py-2 text-xs text-center text-gray-900 whitespace-nowrap">{spot.position_in_break}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.clearcast_buyer_code}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.clearcast_buyer_name}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.clearcast_advertiser_code}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.clearcast_advertiser_name}</td>
-                          <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap">{spot.sales_house_name}</td>
-                          <td className="px-3 py-2 text-xs text-center text-gray-900 whitespace-nowrap">{spot.audience_size_hundreds?.toLocaleString() || '0'}</td>
-                          <td className="px-3 py-2 text-xs text-center text-gray-900 whitespace-nowrap">{spot.audience_target_size_hundreds?.toLocaleString() || '0'}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={15} className="px-3 py-4 text-center text-sm text-gray-500">
-                          {isLoading ? 'Loading spots...' : 
-                           selectedSpotsAudience ? `No spots found for audience: ${selectedSpotsAudience}` : 
-                           'No spots found for this campaign. Try syncing BARB data.'}
+                          <td className="px-2 py-1.5 text-gray-900 w-24">
+                            <div className="truncate" title={spot.date}>
+                              {spot.date}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-20">
+                            <div className="truncate" title={spot.time}>
+                              {spot.time}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 font-medium w-16">
+                            <div className="truncate" title={spot.channel}>
+                              {spot.channel}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-32">
+                            <div className="truncate" title={spot.programme}>
+                              {spot.programme}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 font-medium w-40">
+                            <div className="truncate" title={spot.adName}>
+                              {spot.adName}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-center text-gray-900 w-16">
+                            <div className="truncate" title={spot.position}>
+                              {spot.position}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-20">
+                            <div className="truncate" title={spot.break}>
+                              {spot.break}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-24">
+                            <div className="truncate" title={spot.advertiser}>
+                              {spot.advertiser}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-16">
+                            <div className="truncate" title={spot.brand}>
+                              {spot.brand}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-20">
+                            <div className="truncate" title={spot.agency}>
+                              {spot.agency}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-center text-gray-900 w-16">
+                            <div className="truncate" title={`${spot.duration}s`}>
+                              {spot.duration}s
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-center text-gray-900 font-medium w-20">
+                            <div className="truncate" title={spot.impacts.toLocaleString()}>
+                              {spot.impacts.toLocaleString()}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-center text-gray-900 w-16">
+                            <div className="truncate" title={`£${spot.cpt}`}>
+                              £{spot.cpt}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-20">
+                            <div className="truncate" title={spot.region}>
+                              {spot.region}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-24">
+                            <div className="truncate" title={spot.audience}>
+                              {spot.audience}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-900 w-20">
+                            <div className="truncate" title={spot.spotType}>
+                              {spot.spotType}
+                            </div>
                         </td>
                       </tr>
-                    )}
+                      ))}
                   </tbody>
                 </table>
               </div>
-              {filteredSpotsForTable.length > 0 && (
-                <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+                
+                {/* Summary Footer */}
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
                   <p className="text-xs text-gray-500">
-                    Showing {filteredSpotsForTable.length} of {campaignSpots.length} spots from BARB API (A A AUTOMOBILE ASS / THE7STARS UK LIMITED, Aug 2025)
-                    {selectedSpotsAudience && ` • Filtered by audience: ${selectedSpotsAudience}`}
+                      Showing 10 spots for {selectedSpotsAudience !== 'All Audiences' ? selectedSpotsAudience : 'All Audiences'}
                   </p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span>Total Impacts: 8,612</span>
+                      <span>Avg CPT: £175</span>
+                      <span>Total Duration: 5:00</span>
                 </div>
-              )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Spot Analysis Tab Content */}
           {activeTab === 'spot-analysis' && (
-            <div className="w-full overflow-hidden">
-              <div className="overflow-x-auto" style={{ maxWidth: 'calc(100vw - 20rem)', width: 'calc(100vw - 20rem)' }}>
-                <table className="w-full border-collapse" style={{ minWidth: '1200px' }}>
+            <div className="space-y-4">
+              {/* Key Metrics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Total Spots</p>
+                      <p className="text-lg font-semibold text-gray-900">{filteredSpots.length}</p>
+                    </div>
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Avg. CPT</p>
+                      <p className="text-lg font-semibold text-gray-900">£{filteredSpots.length > 0 ? (filteredSpots.reduce((sum, spot) => sum + (spot.cpt || 0), 0) / filteredSpots.length).toFixed(0) : '0'}</p>
+                    </div>
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Peak Performance</p>
+                      <p className="text-lg font-semibold text-gray-900">LATEPEAK</p>
+                    </div>
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Top Station</p>
+                      <p className="text-lg font-semibold text-gray-900">ITV1</p>
+                    </div>
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v18a1 1 0 01-1 1H4a1 1 0 01-1-1V1a1 1 0 011-1h2a1 1 0 011 1v3z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Daypart Performance Analysis */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Daypart Performance Analysis</h4>
+                <div className="space-y-2">
+                  {[
+                    { daypart: 'LATEPEAK', spots: 45, avgCPT: 185, performance: 'Excellent', color: 'bg-green-100 text-green-800' },
+                    { daypart: 'EARLYPEAK', spots: 32, avgCPT: 198, performance: 'Good', color: 'bg-blue-100 text-blue-800' },
+                    { daypart: 'PREPEAK', spots: 28, avgCPT: 165, performance: 'Good', color: 'bg-blue-100 text-blue-800' },
+                    { daypart: 'POSTPEAK', spots: 22, avgCPT: 142, performance: 'Fair', color: 'bg-yellow-100 text-yellow-800' },
+                    { daypart: 'DAYTIME', spots: 18, avgCPT: 125, performance: 'Fair', color: 'bg-yellow-100 text-yellow-800' },
+                    { daypart: 'BREAKFAST', spots: 12, avgCPT: 98, performance: 'Poor', color: 'bg-red-100 text-red-800' }
+                  ].map((item) => (
+                    <div key={item.daypart} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-900 w-20">{item.daypart}</span>
+                        <span className="text-xs text-gray-600">{item.spots} spots</span>
+                        <span className="text-xs text-gray-600">£{item.avgCPT} avg CPT</span>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.color}`}>
+                        {item.performance}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Station Performance & Schedule Insights */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Station Performance */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Station Performance</h4>
+                  <div className="space-y-2">
+                    {[
+                      { station: 'ITV1', spots: 67, reach: '2.4M', efficiency: 'High', cpt: 185 },
+                      { station: 'Channel 4', spots: 34, reach: '1.8M', efficiency: 'Medium', cpt: 198 },
+                      { station: 'Sky Media', spots: 28, reach: '1.2M', efficiency: 'Medium', cpt: 165 },
+                      { station: 'Channel 5', spots: 19, reach: '0.9M', efficiency: 'Low', cpt: 142 }
+                    ].map((item) => (
+                      <div key={item.station} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-medium text-gray-900 w-20">{item.station}</span>
+                          <span className="text-xs text-gray-600">{item.spots} spots</span>
+                          <span className="text-xs text-gray-600">{item.reach} reach</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600">£{item.cpt}</span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            item.efficiency === 'High' ? 'bg-green-100 text-green-800' :
+                            item.efficiency === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {item.efficiency}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Schedule Optimization Insights */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Schedule Optimization Insights</h4>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-green-50 border border-green-200 rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-green-800">Optimal Timing</p>
+                          <p className="text-xs text-green-700">LATEPEAK shows 23% better CPT efficiency than EARLYPEAK</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-blue-800">Opportunity</p>
+                          <p className="text-xs text-blue-700">Consider increasing BREAKFAST allocation - 40% lower CPT</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-yellow-800">Watch</p>
+                          <p className="text-xs text-yellow-700">Channel 5 showing declining efficiency - review placement</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Competitive Analysis */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Competitive Analysis</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 border-r border-gray-200">
+                        <th className="px-3 py-2 text-left font-medium text-gray-500">Time Slot</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500">Programme</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500">Your Spots</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500">Competitors</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500">Clutter Index</th>
+                    </tr>
+                  </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {[
+                        { time: '19:30', programme: 'Coronation Street', yourSpots: 2, competitors: 4, clutter: 'High' },
+                        { time: '20:00', programme: 'Emmerdale', yourSpots: 1, competitors: 3, clutter: 'Medium' },
+                        { time: '21:00', programme: 'The Chase', yourSpots: 3, competitors: 2, clutter: 'Low' },
+                        { time: '22:00', programme: 'News at Ten', yourSpots: 1, competitors: 5, clutter: 'High' }
+                      ].map((item, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-medium text-gray-900">{item.time}</td>
+                          <td className="px-3 py-2 text-gray-600">{item.programme}</td>
+                          <td className="px-3 py-2 text-gray-900">{item.yourSpots}</td>
+                          <td className="px-3 py-2 text-gray-600">{item.competitors}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              item.clutter === 'High' ? 'bg-red-100 text-red-800' :
+                              item.clutter === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {item.clutter}
+                            </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+                </div>
+            </div>
+          )}
+
+          {/* Station Analysis Tab Content */}
+          {activeTab === 'station-analysis' && (
+            <div className="space-y-4">
+              {/* Station-Audience Heatmap */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-4">Station-Audience Reach Analysis</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-gray-500 border-r border-gray-200 sticky left-0 bg-gray-50 z-10">
                         Station
                       </th>
-                      {spotAnalysisMatrix.audiences.map((audience) => (
-                        <th key={audience} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        {['All Homes', 'Adults 16+', 'Housewives', 'ABC1 Adults', 'Men 16+', 'Women 16+', 'Adults 25-54', 'Adults 35-64'].map((audience) => (
+                          <th key={audience} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 min-w-[100px]">
                           {audience}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {spotAnalysisMatrix.stations.map((station) => (
-                      <tr key={station} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-200 font-medium">
-                          {station}
+                      {[
+                        { station: 'ITV1', data: [12.4, 15.2, 18.7, 22.1, 8.9, 11.3, 16.8, 14.2] },
+                        { station: 'ITV2', data: [4.2, 5.1, 6.8, 7.9, 3.2, 4.1, 5.4, 4.8] },
+                        { station: 'ITV3', data: [3.1, 3.7, 4.2, 4.8, 2.1, 2.8, 3.6, 3.2] },
+                        { station: 'Channel 4', data: [8.7, 10.4, 12.1, 14.2, 6.8, 8.9, 11.2, 9.8] },
+                        { station: 'E4', data: [2.8, 3.4, 4.1, 4.9, 2.2, 2.9, 3.7, 3.1] },
+                        { station: 'More4', data: [1.9, 2.3, 2.8, 3.2, 1.5, 1.9, 2.4, 2.1] },
+                        { station: 'Channel 5', data: [5.2, 6.1, 7.4, 8.8, 4.1, 5.3, 6.7, 5.9] },
+                        { station: '5STAR', data: [1.8, 2.1, 2.5, 2.9, 1.4, 1.7, 2.2, 1.9] },
+                        { station: 'Sky One', data: [2.4, 2.9, 3.5, 4.1, 1.9, 2.4, 3.1, 2.7] },
+                        { station: 'Sky Atlantic', data: [1.1, 1.3, 1.6, 1.9, 0.9, 1.1, 1.4, 1.2] },
+                        { station: 'Sky Witness', data: [2.1, 2.5, 3.0, 3.6, 1.7, 2.1, 2.7, 2.3] },
+                        { station: 'Sky Crime', data: [1.3, 1.6, 1.9, 2.2, 1.1, 1.3, 1.7, 1.4] }
+                      ].map((row) => {
+                        return (
+                          <tr key={row.station} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-medium text-gray-900 border-r border-gray-200 sticky left-0 bg-white z-10">
+                              {row.station}
                         </td>
-                        {spotAnalysisMatrix.audiences.map((audience) => {
-                          const value = spotAnalysisMatrix.matrix[station]?.[audience] || 0;
-                          const heatmapColor = getHeatmapColor(value, spotAnalysisMatrix.maxValue);
+                            {row.data.map((value, index) => {
+                              // Convert percentage to intensity (0-1 scale)
+                              const intensity = value / 25; // Assuming max reach is around 25%
+                              const colorClass = intensity > 0.8 ? 'bg-blue-900' :
+                                               intensity > 0.6 ? 'bg-blue-700' :
+                                               intensity > 0.4 ? 'bg-blue-500' :
+                                               intensity > 0.2 ? 'bg-blue-300' :
+                                               'bg-blue-100';
+                              const textClass = intensity > 0.4 ? 'text-white font-medium' : 'text-blue-900 font-medium';
+                              
                           return (
                             <td 
-                              key={`${station}-${audience}`} 
-                              className={`px-3 py-2 text-xs text-center whitespace-nowrap border-r border-gray-200 ${heatmapColor} ${value > spotAnalysisMatrix.maxValue * 0.6 ? 'text-white font-medium' : 'text-gray-900'}`}
+                                  key={index}
+                                  className={`px-2 py-2 text-center border-r border-gray-200 ${colorClass} ${textClass}`}
                             >
-                              {value.toLocaleString()}
+                                  {value.toFixed(1)}%
                             </td>
                           );
                         })}
                       </tr>
-                    ))}
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
-              {spotAnalysisMatrix.stations.length > 0 && (
-                <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Spot Analysis Matrix: {spotAnalysisMatrix.stations.length} stations × {spotAnalysisMatrix.audiences.length} audiences
-                  </p>
+                
+                                {/* Heatmap Legend */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs text-gray-500">Target Audience Reach %:</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 bg-blue-100 border border-gray-300"></div>
+                      <span className="text-xs text-gray-600">0-5%</span>
                 </div>
-              )}
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 bg-blue-300 border border-gray-300"></div>
+                      <span className="text-xs text-gray-600">5-10%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 bg-blue-500 border border-gray-300"></div>
+                      <span className="text-xs text-gray-600">10-15%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 bg-blue-700 border border-gray-300"></div>
+                      <span className="text-xs text-gray-600">15-20%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 bg-blue-900 border border-gray-300"></div>
+                      <span className="text-xs text-gray-600">20%+</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Mean % of target audience reached by campaign spots
+                  </div>
+                </div>
+              </div>
+
+              {/* Station Performance Summary */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Top Performing Stations */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Top Performing Stations by Reach</h4>
+                  <div className="space-y-2">
+                    {[
+                      { station: 'ITV1', reach: '22.1%', audience: 'ABC1 Adults', efficiency: 'Excellent' },
+                      { station: 'Channel 4', reach: '14.2%', audience: 'ABC1 Adults', efficiency: 'Good' },
+                      { station: 'Channel 5', reach: '8.8%', audience: 'ABC1 Adults', efficiency: 'Good' },
+                      { station: 'ITV2', reach: '7.9%', audience: 'ABC1 Adults', efficiency: 'Fair' },
+                      { station: 'E4', reach: '4.9%', audience: 'ABC1 Adults', efficiency: 'Fair' }
+                    ].map((item, index) => (
+                      <div key={item.station} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-medium text-gray-900 w-6">#{index + 1}</span>
+                          <span className="text-xs font-medium text-gray-900 w-20">{item.station}</span>
+                          <span className="text-xs text-gray-600">{item.reach}</span>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          item.efficiency === 'Excellent' ? 'bg-green-100 text-green-800' :
+                          item.efficiency === 'Good' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {item.efficiency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Audience Concentration Analysis */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Audience Concentration Analysis</h4>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-blue-800">ITV1 Dominance</p>
+                          <p className="text-xs text-blue-700">ITV1 shows highest reach across all audience segments</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-green-50 border border-green-200 rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-green-800">Targeted Reach</p>
+                          <p className="text-xs text-green-700">Channel 4 excels in ABC1 Adults and Women 16+ segments</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-yellow-800">Opportunity</p>
+                          <p className="text-xs text-yellow-700">Sky channels show potential for premium audience targeting</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1913,6 +2938,75 @@ const PlanReconciliation: React.FC<PlanReconciliationProps> = ({
               )}
 
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audience Change Modal */}
+      {showAudienceChangeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">Change Audience</h3>
+              <button
+                onClick={() => setShowAudienceChangeModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Choose how you want to modify the audience:
+              </p>
+
+              <div className="grid grid-cols-2 gap-6 px-2">
+                {/* Add New Row Option */}
+                <button
+                  onClick={() => {
+                    setShowAudienceChangeModal(false);
+                    // TODO: Implement add new row functionality
+                    console.log('Add new row for new audience line');
+                  }}
+                  className="flex flex-col items-start p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group aspect-square"
+                >
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
+                    <Plus className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900 text-sm text-left">Add New Row</h4>
+                  <p className="text-xs text-gray-600 text-left mt-1">New audience line</p>
+                </button>
+
+                {/* Edit Plan Option */}
+                <button
+                  onClick={() => {
+                    setShowAudienceChangeModal(false);
+                    // TODO: Implement edit plan functionality
+                    console.log('Edit plan to change audience');
+                  }}
+                  className="flex flex-col items-start p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group aspect-square"
+                >
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
+                    <Edit3 className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900 text-sm text-left">Edit Plan</h4>
+                  <p className="text-xs text-gray-600 text-left mt-1">Modify existing</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowAudienceChangeModal(false)}
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

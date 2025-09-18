@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Link, useLocation, NavLink } from 'react-router-dom'
-import { BarChart3, Users, Settings, ChevronDown, Youtube, Tv, Bot, Book, Target, TrendingUp, Monitor, Database } from 'lucide-react'
+import { BarChart3, Users, Settings, ChevronDown, Youtube, Tv, Bot, Book, Target, TrendingUp, Monitor, Database, Eye, Video, TestTube, Zap } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 const navItems = [
@@ -8,8 +8,10 @@ const navItems = [
   { name: 'Analytics', icon: BarChart3, href: '/analytics-insights' },
   { name: 'Audience Builder', icon: Target, href: '/audience-builder' },
   { name: 'YouTube Curation', icon: Youtube, href: '/youtube-curation' },
-  { name: 'TV Intelligence', icon: Tv, href: '/tv-intelligence' },
-  { name: 'TV Spot Analysis', icon: Database, href: '/barb-data-puller' },
+  { name: 'AI Ad Generator', icon: Video, href: '/ad-generator' },
+  { name: 'Ad Tag Tester', icon: TestTube, href: '/ad-tag-tester' },
+  { name: 'Magnite API', icon: Zap, href: '/magnite-api' },
+  // { name: 'TV Intelligence', icon: Tv, href: '/tv-intelligence' }, // Hidden - now available under TV Spot Analysis
   { name: 'Incremental Reach', icon: TrendingUp, href: '/incremental-reach' },
 ]
 
@@ -19,6 +21,7 @@ const Sidebar: React.FC = () => {
   const [currentOrg, setCurrentOrg] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [tvSpotDropdownOpen, setTvSpotDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -34,6 +37,13 @@ const Sidebar: React.FC = () => {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [dropdownOpen])
+
+  useEffect(() => {
+    // Auto-open TV Spot Analysis dropdown when on that page
+    if (location.pathname.startsWith('/barb-data-puller')) {
+      setTvSpotDropdownOpen(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchOrgs = async () => {
@@ -222,7 +232,7 @@ const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 h-screen flex flex-col sticky top-14">
+            <aside className="w-58 bg-white border-r border-gray-200 h-screen flex flex-col sticky top-14 flex-shrink-0">
       <nav className="flex-1 px-4 py-6 overflow-y-auto">
         <ul className="space-y-2">
           {navItems.map((item) => {
@@ -243,6 +253,57 @@ const Sidebar: React.FC = () => {
               </li>
             )
           })}
+          
+          {/* TV Spot Analysis Expandable Section */}
+          <li>
+            <div>
+              <button
+                onClick={() => setTvSpotDropdownOpen(!tvSpotDropdownOpen)}
+                className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+                  location.pathname.startsWith('/barb-data-puller') 
+                    ? 'bg-[#02b3e5]/10 text-[#02b3e5] font-semibold' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center">
+                  <Database className={`w-5 h-5 mr-3 ${location.pathname.startsWith('/barb-data-puller') ? 'text-[#02b3e5]' : 'text-gray-400'}`} />
+                  TV Spot Analysis
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${tvSpotDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {tvSpotDropdownOpen && (
+                <div className="ml-4 mt-1 space-y-1">
+                  <NavLink
+                    to="/barb-data-puller?tab=reconciliation"
+                    className={({ isActive }) =>
+                      `flex items-center px-3 py-2 rounded-md text-sm transition-colors duration-150 ${
+                        isActive && location.search.includes('tab=reconciliation') 
+                          ? 'text-[#02b3e5]' 
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Plan Reconciliation
+                  </NavLink>
+                  <NavLink
+                    to="/barb-data-puller?tab=tv-intelligence"
+                    className={({ isActive }) =>
+                      `flex items-center px-3 py-2 rounded-md text-sm transition-colors duration-150 ${
+                        isActive && location.search.includes('tab=tv-intelligence') 
+                          ? 'text-[#02b3e5]' 
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    TV Intelligence
+                  </NavLink>
+                </div>
+              )}
+            </div>
+          </li>
         </ul>
         <div className="mt-auto">
           <hr className="my-4 border-gray-200" />

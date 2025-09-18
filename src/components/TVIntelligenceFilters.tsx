@@ -191,20 +191,20 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-gray-900">Filters</h3>
+    <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <Filter className="w-4 h-4" />
+          <Filter className="w-3 h-3" />
           {showFilters ? 'Hide' : 'Show'} Advanced Filters
         </button>
       </div>
 
       {/* Main Filters - Always Visible */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
         {/* Advertiser Filter */}
         <div className="relative" ref={advertiserRef}>
           <label className="block text-xs font-medium text-gray-700 mb-1">Advertiser</label>
@@ -218,7 +218,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
                 setShowAdvertiserDropdown(true);
               }}
               onFocus={() => setShowAdvertiserDropdown(true)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
               <Search className="h-4 w-4 text-gray-400" />
@@ -257,7 +257,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
                 setShowBrandDropdown(true);
               }}
               onFocus={() => setShowBrandDropdown(true)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
               <Search className="h-4 w-4 text-gray-400" />
@@ -296,7 +296,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
                 setShowAgencyDropdown(true);
               }}
               onFocus={() => setShowAgencyDropdown(true)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
               <Search className="h-4 w-4 text-gray-400" />
@@ -334,7 +334,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
               date: e.target.value,
               channel: selectedChannel
             })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
           >
             <option value="">All Time</option>
             <option value={getYesterday()}>Yesterday</option>
@@ -346,7 +346,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
 
       {/* Advanced Filters */}
       {showFilters && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
           {/* Channel Filter */}
           <div className="relative" ref={channelRef}>
             <label className="block text-xs font-medium text-gray-700 mb-1">Channel</label>
@@ -360,7 +360,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
                   setShowChannelDropdown(true);
                 }}
                 onFocus={() => setShowChannelDropdown(true)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                 <Search className="h-4 w-4 text-gray-400" />
@@ -390,7 +390,7 @@ const TVIntelligenceFilters: React.FC<TVIntelligenceFiltersProps> = ({
 
       {/* Selected Filters Pills */}
       {(selectedAdvertiser || selectedBrand || selectedAgency || selectedChannel) && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {selectedAdvertiser && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               {selectedAdvertiser}

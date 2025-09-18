@@ -11,6 +11,85 @@ const contentFields = [
 
 const ROWS_PER_PAGE = 20;
 
+// Aggregate content data from campaign_events table
+const aggregateContentData = (data: any[], fieldType: string) => {
+  const aggregation: Record<string, any> = {};
+  
+  data.forEach(row => {
+    const fieldValue = row[fieldType] || 'Unknown';
+    const eventType = row.event_type;
+    
+    if (!aggregation[fieldValue]) {
+      aggregation[fieldValue] = {
+        [fieldType]: fieldValue,
+        total_impressions: 0,
+        total_completed_views: 0,
+        total_spend: 0,
+        cpm: 24.00, // Fixed CPM for now
+        cpcv: 0
+      };
+    }
+    
+    // Count impressions and completed views
+    if (eventType === 'impression') {
+      aggregation[fieldValue].total_impressions += 1;
+    } else if (eventType === 'videocomplete') {
+      aggregation[fieldValue].total_completed_views += 1;
+    }
+  });
+  
+  // Calculate spend and CPCV for each aggregated item
+  Object.values(aggregation).forEach((item: any) => {
+    // Calculate spend based on impressions and CPM (£24)
+    item.total_spend = (item.total_impressions * 24.00) / 1000;
+    
+    // Calculate CPCV: spend / completed views
+    item.cpcv = item.total_completed_views > 0 ? item.total_spend / item.total_completed_views : 0;
+  });
+  
+  return Object.values(aggregation);
+};
+
+// Mock data for content analysis when tables don't exist
+const getMockContentData = (fieldType: string) => {
+  switch (fieldType) {
+    case 'channel_name':
+      return [
+        { channel_name: 'BBC One', total_impressions: 1250000, total_completed_views: 89000, total_spend: 30000.00, cpm: 24.00, cpcv: 0.34 },
+        { channel_name: 'ITV1', total_impressions: 980000, total_completed_views: 72000, total_spend: 23520.00, cpm: 24.00, cpcv: 0.33 },
+        { channel_name: 'Channel 4', total_impressions: 750000, total_completed_views: 54000, total_spend: 18000.00, cpm: 24.00, cpcv: 0.33 },
+        { channel_name: 'Sky Sports', total_impressions: 620000, total_completed_views: 48000, total_spend: 14880.00, cpm: 24.00, cpcv: 0.31 },
+        { channel_name: 'Discovery', total_impressions: 450000, total_completed_views: 32000, total_spend: 10800.00, cpm: 24.00, cpcv: 0.34 }
+      ];
+    case 'content_genre':
+      return [
+        { content_genre: 'News', total_impressions: 890000, total_completed_views: 65000, total_spend: 21360.00, cpm: 24.00, cpcv: 0.33 },
+        { content_genre: 'Entertainment', total_impressions: 720000, total_completed_views: 52000, total_spend: 17280.00, cpm: 24.00, cpcv: 0.33 },
+        { content_genre: 'Sports', total_impressions: 680000, total_completed_views: 48000, total_spend: 16320.00, cpm: 24.00, cpcv: 0.34 },
+        { content_genre: 'Documentary', total_impressions: 450000, total_completed_views: 32000, total_spend: 10800.00, cpm: 24.00, cpcv: 0.34 },
+        { content_genre: 'Children', total_impressions: 320000, total_completed_views: 22000, total_spend: 7680.00, cpm: 24.00, cpcv: 0.35 }
+      ];
+    case 'content_title':
+      return [
+        { content_title: 'BBC News at Six', total_impressions: 450000, total_completed_views: 32000, total_spend: 10800.00, cpm: 24.00, cpcv: 0.34 },
+        { content_title: 'Coronation Street', total_impressions: 380000, total_completed_views: 28000, total_spend: 9120.00, cpm: 24.00, cpcv: 0.34 },
+        { content_title: 'Match of the Day', total_impressions: 320000, total_completed_views: 24000, total_spend: 7680.00, cpm: 24.00, cpcv: 0.34 },
+        { content_title: 'The Great British Bake Off', total_impressions: 280000, total_completed_views: 20000, total_spend: 6720.00, cpm: 24.00, cpcv: 0.34 },
+        { content_title: 'Blue Planet II', total_impressions: 220000, total_completed_views: 16000, total_spend: 5280.00, cpm: 24.00, cpcv: 0.34 }
+      ];
+    case 'content_series':
+      return [
+        { content_series: 'BBC News', total_impressions: 890000, total_completed_views: 65000, total_spend: 21360.00, cpm: 24.00, cpcv: 0.33 },
+        { content_series: 'Coronation Street', total_impressions: 380000, total_completed_views: 28000, total_spend: 9120.00, cpm: 24.00, cpcv: 0.34 },
+        { content_series: 'Match of the Day', total_impressions: 320000, total_completed_views: 24000, total_spend: 7680.00, cpm: 24.00, cpcv: 0.34 },
+        { content_series: 'The Great British Bake Off', total_impressions: 280000, total_completed_views: 20000, total_spend: 6720.00, cpm: 24.00, cpcv: 0.34 },
+        { content_series: 'Blue Planet', total_impressions: 220000, total_completed_views: 16000, total_spend: 5280.00, cpm: 24.00, cpcv: 0.34 }
+      ];
+    default:
+      return [];
+  }
+};
+
 const Content: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<any[]>([]);
@@ -35,8 +114,9 @@ const Content: React.FC = () => {
           if (!currentField) return;
 
           // Build query with pagination and sorting
+          // Query campaign_events directly instead of materialized views
           let query = supabase
-            .from(currentField.table)
+            .from('campaign_events')
             .select('*', { count: 'exact' });
 
           // Apply search filter
@@ -44,23 +124,35 @@ const Content: React.FC = () => {
             query = query.ilike(currentField.field, `%${search}%`);
           }
 
-          // Apply sorting
-          query = query.order(sortField, { ascending: sortDirection === 'asc' });
-
-          // Apply pagination
-          const from = (currentPage - 1) * ROWS_PER_PAGE;
-          const to = from + ROWS_PER_PAGE - 1;
-          query = query.range(from, to);
-
-          const { data, error, count } = await query;
+          // Get all data first for aggregation
+          const { data: allData, error, count } = await query;
 
           if (error) {
             console.error('Error fetching content data:', error);
+            console.log('Table being queried: campaign_events');
+            console.log('Field being queried:', currentField.field);
             setRows([]);
             setTotalRows(0);
           } else {
-            setRows(data || []);
-            setTotalRows(count || 0);
+            console.log('Successfully fetched data:', allData?.length || 0, 'rows from campaign_events');
+            
+            // Aggregate the data by the selected field
+            const aggregatedData = aggregateContentData(allData, currentField.id);
+            
+            // Apply sorting
+            const sortedData = aggregatedData.sort((a: any, b: any) => {
+              const aValue = a[sortField] || 0;
+              const bValue = b[sortField] || 0;
+              return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+            });
+            
+            // Apply pagination
+            const from = (currentPage - 1) * ROWS_PER_PAGE;
+            const to = from + ROWS_PER_PAGE;
+            const paginatedData = sortedData.slice(from, to);
+            
+            setRows(paginatedData);
+            setTotalRows(aggregatedData.length);
           }
         } catch (error) {
           console.error('Error in content data processing:', error);

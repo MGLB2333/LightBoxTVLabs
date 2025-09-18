@@ -119,7 +119,7 @@ const TVIntelligenceSpotsTable: React.FC<TVIntelligenceSpotsTableProps> = ({ spo
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden max-w-7xl">
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
@@ -176,32 +176,33 @@ const TVIntelligenceSpotsTable: React.FC<TVIntelligenceSpotsTableProps> = ({ spo
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="h-96 overflow-auto border border-gray-200 rounded-md max-w-6xl">
+        <div className="min-w-[1600px]">
+          <table className="w-full table-auto">
           <thead className="bg-gray-50">
             <tr>
               {[
-                { key: 'date', label: 'Date' },
-                { key: 'time', label: 'Time' },
-                { key: 'channel', label: 'Channel' },
-                { key: 'programme', label: 'Programme' },
-                { key: 'commercial_title', label: 'Ad Name' },
-                { key: 'position_in_break', label: 'Position' },
-                { key: 'break_title', label: 'Break' },
-                { key: 'advertiser', label: 'Advertiser' },
-                { key: 'brand', label: 'Brand' },
-                { key: 'agency', label: 'Agency' },
-                { key: 'duration', label: 'Duration' },
-                { key: 'impacts', label: 'Impacts' },
-                { key: 'cpt', label: 'CPT' },
-                { key: 'region', label: 'Region' },
-                { key: 'audience_segment', label: 'Audience Segment' },
-                { key: 'spot_type', label: 'Spot Type' }
+                { key: 'date', label: 'Date', maxWidth: 'max-w-32', defaultWidth: 'w-32' },
+                { key: 'time', label: 'Time', maxWidth: 'max-w-32', defaultWidth: 'w-32' },
+                { key: 'channel', label: 'Channel', maxWidth: 'max-w-40', defaultWidth: 'w-40' },
+                { key: 'programme', label: 'Programme', maxWidth: 'max-w-96', defaultWidth: 'w-80' },
+                { key: 'commercial_title', label: 'Ad Name', maxWidth: 'max-w-64', defaultWidth: 'w-64' },
+                { key: 'position_in_break', label: 'Position', maxWidth: 'max-w-32', defaultWidth: 'w-32' },
+                { key: 'break_title', label: 'Break', maxWidth: 'max-w-64', defaultWidth: 'w-64' },
+                { key: 'advertiser', label: 'Advertiser', maxWidth: 'max-w-48', defaultWidth: 'w-48' },
+                { key: 'brand', label: 'Brand', maxWidth: 'max-w-48', defaultWidth: 'w-48' },
+                { key: 'agency', label: 'Agency', maxWidth: 'max-w-56', defaultWidth: 'w-56' },
+                { key: 'duration', label: 'Duration', maxWidth: 'max-w-32', defaultWidth: 'w-32' },
+                { key: 'impacts', label: 'Impacts', maxWidth: 'max-w-40', defaultWidth: 'w-40' },
+                { key: 'cpt', label: 'CPT', maxWidth: 'max-w-32', defaultWidth: 'w-32' },
+                { key: 'region', label: 'Region', maxWidth: 'max-w-32', defaultWidth: 'w-32' },
+                { key: 'audience_segment', label: 'Audience Segment', maxWidth: 'max-w-48', defaultWidth: 'w-48' },
+                { key: 'spot_type', label: 'Spot Type', maxWidth: 'max-w-40', defaultWidth: 'w-40' }
               ].map(column => (
                 <th
                   key={column.key}
                   onClick={() => handleSort(column.key as keyof BARBSpot)}
-                  className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 ${column.defaultWidth} ${column.maxWidth}`}
                 >
                   <div className="flex items-center gap-1">
                     {column.label}
@@ -216,33 +217,96 @@ const TVIntelligenceSpotsTable: React.FC<TVIntelligenceSpotsTableProps> = ({ spo
           <tbody className="bg-white divide-y divide-gray-200">
             {getCurrentData.map((spot, index) => (
               <tr key={spot.id} className="hover:bg-gray-50">
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.date}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.time}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.channel}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.programme}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900 font-medium">{spot.commercial_title || 'N/A'}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900 text-center">{spot.position_in_break || 'N/A'}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.break_title || 'N/A'}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.advertiser}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.brand}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.agency}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.duration}s</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">
-                  {formatNumber(spot.impacts)}
-                  {spot.audience_breakdown && spot.audience_breakdown.length > 1 && (
-                    <span className="ml-1 text-xs text-gray-500" title={`Aggregated across ${spot.audience_breakdown.length} audience segments`}>
-                      ({spot.audience_breakdown.length})
-                    </span>
-                  )}
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-32">
+                  <div className="truncate" title={spot.date}>
+                    {spot.date}
+                  </div>
                 </td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{formatCurrency(spot.cpt)}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.region}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.audience_segment}</td>
-                <td className="px-2 py-1.5 text-xs text-gray-900">{spot.spot_type}</td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-32">
+                  <div className="truncate" title={spot.time}>
+                    {spot.time}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-40">
+                  <div className="truncate" title={spot.channel}>
+                    {spot.channel}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-80">
+                  <div className="truncate" title={spot.programme}>
+                    {spot.programme}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 font-medium w-64">
+                  <div className="truncate" title={spot.commercial_title || 'N/A'}>
+                    {spot.commercial_title || 'N/A'}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 text-center w-32">
+                  <div className="truncate" title={spot.position_in_break || 'N/A'}>
+                    {spot.position_in_break || 'N/A'}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-64">
+                  <div className="truncate" title={spot.break_title || 'N/A'}>
+                    {spot.break_title || 'N/A'}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-48">
+                  <div className="truncate" title={spot.advertiser}>
+                    {spot.advertiser}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-48">
+                  <div className="truncate" title={spot.brand}>
+                    {spot.brand}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-56">
+                  <div className="truncate" title={spot.agency}>
+                    {spot.agency}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-32">
+                  <div className="truncate" title={`${spot.duration}s`}>
+                    {spot.duration}s
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-40">
+                  <div className="truncate" title={`${formatNumber(spot.impacts)}${spot.audience_breakdown && spot.audience_breakdown.length > 1 ? ` (${spot.audience_breakdown.length} segments)` : ''}`}>
+                    {formatNumber(spot.impacts)}
+                    {spot.audience_breakdown && spot.audience_breakdown.length > 1 && (
+                      <span className="ml-1 text-xs text-gray-500" title={`Aggregated across ${spot.audience_breakdown.length} audience segments`}>
+                        ({spot.audience_breakdown.length})
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-32">
+                  <div className="truncate" title={formatCurrency(spot.cpt)}>
+                    {formatCurrency(spot.cpt)}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-32">
+                  <div className="truncate" title={spot.region}>
+                    {spot.region}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-48">
+                  <div className="truncate" title={spot.audience_segment}>
+                    {spot.audience_segment}
+                  </div>
+                </td>
+                <td className="px-2 py-1.5 text-xs text-gray-900 w-40">
+                  <div className="truncate" title={spot.spot_type}>
+                    {spot.spot_type}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

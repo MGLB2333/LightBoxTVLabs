@@ -17,6 +17,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/my-organizations': 'My Organizations',
   '/audience-builder': 'Audience Builder',
   '/youtube-curation': 'YouTube Curation',
+  '/ad-generator': 'Ad Generator',
   '/tv-intelligence': 'TV Intelligence',
 };
 
@@ -38,7 +39,7 @@ const LayoutInner: React.FC = () => {
         <Header />
         <div className="flex flex-1 min-h-0">
           <Sidebar />
-          <main className="flex-1 min-h-0 flex flex-col">
+          <main className="flex-1 min-h-0 flex flex-col min-w-0">
             <PageBanner>
               <div className="px-6 md:px-10 w-full flex items-center justify-between">
                 <div className="flex-1">
@@ -46,7 +47,7 @@ const LayoutInner: React.FC = () => {
                 </div>
               </div>
             </PageBanner>
-            <div className="px-6 md:px-10 py-6 flex-1">
+            <div className="px-6 md:px-10 py-6 flex-1 min-w-0">
               <Outlet />
             </div>
           </main>

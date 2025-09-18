@@ -5,6 +5,7 @@ import { TVCampaignService, TVCampaign } from '../lib/tvCampaignService';
 import { 
   Download, RefreshCw, Eye, BarChart3, FileText, PieChart, TrendingUp
 } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 // Import new components
 import TVIntelligenceFilters from '../components/TVIntelligenceFilters';
@@ -16,6 +17,8 @@ import PlanReconciliation from '../components/PlanReconciliation';
 
 const BARBDataPuller: React.FC = () => {
   const setBanner = useSetBanner();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeMainTab, setActiveMainTab] = useState<'tv-intelligence' | 'reconciliation'>('reconciliation');
   const [activeSubTab, setActiveSubTab] = useState<'spots' | 'summary' | 'channels' | 'audiences'>('spots');
   
@@ -35,7 +38,7 @@ const BARBDataPuller: React.FC = () => {
   // Plan Reconciliation states
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
   const [selectedCampaignDetails, setSelectedCampaignDetails] = useState<TVCampaign | null>(null);
-  const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(new Set(['ITV Sales', 'Sky Media UK Sales', 'Channel 4']));
+  const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(new Set(['ITV1', 'C4', 'Sky Media']));
   
   // Dropdown options
   const [advertisers, setAdvertisers] = useState<string[]>([]);
@@ -68,6 +71,18 @@ const BARBDataPuller: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [selectedAdvertiser, selectedBrand, selectedAgency, selectedDate, selectedChannel]);
+
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'tv-intelligence' || tab === 'reconciliation') {
+      setActiveMainTab(tab);
+    } else {
+      // Default to reconciliation if no tab specified
+      setActiveMainTab('reconciliation');
+      setSearchParams({ tab: 'reconciliation' });
+    }
+  }, [searchParams, setSearchParams]);
 
   const loadDropdownOptions = async () => {
     try {
@@ -269,36 +284,18 @@ const BARBDataPuller: React.FC = () => {
     setExpandedSuppliers(newExpanded);
   };
 
+  const handleTabChange = (tab: 'tv-intelligence' | 'reconciliation') => {
+    setActiveMainTab(tab);
+    setSearchParams({ tab });
+  };
+
   return (
     <div className="w-full">
-      {/* Main Tab Navigation */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'reconciliation', label: 'Plan Reconciliation', icon: Eye },
-              { id: 'tv-intelligence', label: 'TV Intelligence', icon: BarChart3 }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveMainTab(tab.id as any)}
-                className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeMainTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
+
 
       {/* TV Intelligence Tab Content */}
       {activeMainTab === 'tv-intelligence' && (
-        <div>
+        <div className="max-w-7xl">
           <TVIntelligenceFilters
             selectedAdvertiser={selectedAdvertiser}
             selectedBrand={selectedBrand}
@@ -312,7 +309,7 @@ const BARBDataPuller: React.FC = () => {
             onFilterChange={handleFilterChange}
           />
           
-          <TVIntelligenceSummary stats={stats} />
+          {/* TVIntelligenceSummary stats={stats} /> */}
           
           <div className="mb-4">
             <div className="border-b border-gray-200">

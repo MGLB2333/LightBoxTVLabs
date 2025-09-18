@@ -10,6 +10,84 @@ const tabs = [
 
 const ROWS_PER_PAGE = 20;
 
+// Aggregate inventory data from campaign_events table
+const aggregateInventoryData = (data: any[]) => {
+  const aggregation: Record<string, any> = {};
+  
+  data.forEach(row => {
+    const publisherName = row.pub_name || 'Unknown';
+    const eventType = row.event_type;
+    
+    if (!aggregation[publisherName]) {
+      aggregation[publisherName] = {
+        publisher_name: publisherName,
+        total_impressions: 0,
+        total_completed_views: 0,
+        total_spend: 0,
+        cpm: 24.00, // Fixed CPM for now
+        cpcv: 0
+      };
+    }
+    
+    // Count impressions and completed views
+    if (eventType === 'impression') {
+      aggregation[publisherName].total_impressions += 1;
+    } else if (eventType === 'videocomplete') {
+      aggregation[publisherName].total_completed_views += 1;
+    }
+  });
+  
+  // Calculate spend and CPCV for each aggregated item
+  Object.values(aggregation).forEach((item: any) => {
+    // Calculate spend based on impressions and CPM (£24)
+    item.total_spend = (item.total_impressions * 24.00) / 1000;
+    
+    // Calculate CPCV: spend / completed views
+    item.cpcv = item.total_completed_views > 0 ? item.total_spend / item.total_completed_views : 0;
+  });
+  
+  return Object.values(aggregation);
+};
+
+// Aggregate bundle data from campaign_events table
+const aggregateBundleData = (data: any[]) => {
+  const aggregation: Record<string, any> = {};
+  
+  data.forEach(row => {
+    const bundleId = row.bundle_id || 'Unknown';
+    const eventType = row.event_type;
+    
+    if (!aggregation[bundleId]) {
+      aggregation[bundleId] = {
+        bundle_id: bundleId,
+        total_impressions: 0,
+        total_completed_views: 0,
+        total_spend: 0,
+        cpm: 24.00, // Fixed CPM for now
+        cpcv: 0
+      };
+    }
+    
+    // Count impressions and completed views
+    if (eventType === 'impression') {
+      aggregation[bundleId].total_impressions += 1;
+    } else if (eventType === 'videocomplete') {
+      aggregation[bundleId].total_completed_views += 1;
+    }
+  });
+  
+  // Calculate spend and CPCV for each aggregated item
+  Object.values(aggregation).forEach((item: any) => {
+    // Calculate spend based on impressions and CPM (£24)
+    item.total_spend = (item.total_impressions * 24.00) / 1000;
+    
+    // Calculate CPCV: spend / completed views
+    item.cpcv = item.total_completed_views > 0 ? item.total_spend / item.total_completed_views : 0;
+  });
+  
+  return Object.values(aggregation);
+};
+
 interface HeatmapData {
   publisher: string;
   date: string;
@@ -160,33 +238,44 @@ const Inventory: React.FC = () => {
     setLoading(true);
     (async () => {
       try {
-        // Build query with pagination and sorting
+        // Query campaign_events directly instead of inventory_summary
         let query = supabase
-          .from('inventory_summary')
+          .from('campaign_events')
           .select('*', { count: 'exact' });
 
         // Apply search filter
         if (search) {
-          query = query.ilike('publisher_name', `%${search}%`);
+          query = query.ilike('pub_name', `%${search}%`);
         }
 
-        // Apply sorting
-        query = query.order(sortField, { ascending: sortDirection === 'asc' });
-
-        // Apply pagination
-        const from = (currentPage - 1) * ROWS_PER_PAGE;
-        const to = from + ROWS_PER_PAGE - 1;
-        query = query.range(from, to);
-
-        const { data, error, count } = await query;
+        // Get all data first for aggregation
+        const { data: allData, error, count } = await query;
 
         if (error) {
           console.error('Error fetching inventory data:', error);
+          console.log('Table being queried: campaign_events');
           setRows([]);
           setTotalRows(0);
         } else {
-          setRows(data || []);
-          setTotalRows(count || 0);
+          console.log('Successfully fetched data:', allData?.length || 0, 'rows from campaign_events');
+          
+          // Aggregate the data by publisher
+          const aggregatedData = aggregateInventoryData(allData);
+          
+          // Apply sorting
+          const sortedData = aggregatedData.sort((a: any, b: any) => {
+            const aValue = a[sortField] || 0;
+            const bValue = b[sortField] || 0;
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          });
+          
+          // Apply pagination
+          const from = (currentPage - 1) * ROWS_PER_PAGE;
+          const to = from + ROWS_PER_PAGE;
+          const paginatedData = sortedData.slice(from, to);
+          
+          setRows(paginatedData);
+          setTotalRows(aggregatedData.length);
         }
       } catch (error) {
         console.error('Error in inventory data processing:', error);
@@ -204,29 +293,43 @@ const Inventory: React.FC = () => {
     setBundleLoading(true);
     (async () => {
       try {
+        // Query campaign_events directly instead of bundle_summary
         let query = supabase
-          .from('bundle_summary')
+          .from('campaign_events')
           .select('*', { count: 'exact' });
 
         if (search) {
           query = query.ilike('bundle_id', `%${search}%`);
         }
 
-        query = query.order(sortField, { ascending: sortDirection === 'asc' });
-
-        const from = (currentPage - 1) * ROWS_PER_PAGE;
-        const to = from + ROWS_PER_PAGE - 1;
-        query = query.range(from, to);
-
-        const { data, error, count } = await query;
+        // Get all data first for aggregation
+        const { data: allData, error, count } = await query;
 
         if (error) {
           console.error('Error fetching bundle data:', error);
+          console.log('Table being queried: campaign_events');
           setBundleRows([]);
           setTotalRows(0);
         } else {
-          setBundleRows(data || []);
-          setTotalRows(count || 0);
+          console.log('Successfully fetched bundle data:', allData?.length || 0, 'rows from campaign_events');
+          
+          // Aggregate the data by bundle ID
+          const aggregatedData = aggregateBundleData(allData);
+          
+          // Apply sorting
+          const sortedData = aggregatedData.sort((a: any, b: any) => {
+            const aValue = a[sortField] || 0;
+            const bValue = b[sortField] || 0;
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+          });
+          
+          // Apply pagination
+          const from = (currentPage - 1) * ROWS_PER_PAGE;
+          const to = from + ROWS_PER_PAGE;
+          const paginatedData = sortedData.slice(from, to);
+          
+          setBundleRows(paginatedData);
+          setTotalRows(aggregatedData.length);
         }
       } catch (error) {
         console.error('Error in bundle data processing:', error);

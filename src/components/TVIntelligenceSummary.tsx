@@ -49,55 +49,55 @@ const TVIntelligenceSummary: React.FC<TVIntelligenceSummaryProps> = ({ stats }) 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
       {/* Total Spots */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Total Spots</p>
             <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.total_spots)}</p>
           </div>
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BarChart3 className="w-6 h-6 text-blue-600" />
+          <div className="p-2 bg-[#02b3e5]/10 rounded-lg">
+            <BarChart3 className="w-6 h-6 text-[#02b3e5]" />
           </div>
         </div>
       </div>
 
       {/* Total Impacts */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Total Impacts</p>
             <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.total_impacts)}</p>
           </div>
-          <div className="p-2 bg-green-100 rounded-lg">
-            <Eye className="w-6 h-6 text-green-600" />
+          <div className="p-2 bg-[#02b3e5]/10 rounded-lg">
+            <Eye className="w-6 h-6 text-[#02b3e5]" />
           </div>
         </div>
       </div>
 
       {/* Total Duration */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Total Duration</p>
             <p className="text-2xl font-bold text-gray-900">{Math.round((stats.total_duration || 0) / 60)}m</p>
           </div>
-          <div className="p-2 bg-yellow-100 rounded-lg">
-            <Clock className="w-6 h-6 text-yellow-600" />
+          <div className="p-2 bg-[#02b3e5]/10 rounded-lg">
+            <Clock className="w-6 h-6 text-[#02b3e5]" />
           </div>
         </div>
       </div>
 
       {/* Average CPT */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Average CPT</p>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.avg_cpt)}</p>
           </div>
-          <div className="p-2 bg-purple-100 rounded-lg">
-            <TrendingUp className="w-6 h-6 text-purple-600" />
+          <div className="p-2 bg-[#02b3e5]/10 rounded-lg">
+            <TrendingUp className="w-6 h-6 text-[#02b3e5]" />
           </div>
         </div>
       </div>

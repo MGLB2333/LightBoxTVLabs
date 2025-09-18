@@ -265,7 +265,7 @@ const Header: React.FC = () => {
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-pink-500 text-white rounded hover:bg-pink-600 transition-colors flex items-center gap-1"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-black text-pink-500 rounded hover:bg-gray-900 transition-colors flex items-center gap-1"
                 disabled={!aiSearchQuery.trim()}
               >
                 <Sparkles className="w-4 h-4" />
@@ -278,7 +278,7 @@ const Header: React.FC = () => {
         <div className="flex items-center space-x-4">
           {/* User email */}
           <div className="text-white text-sm font-medium">
-            {user?.email}
+            Demo@lightboxtv.com
           </div>
           {/* Profile dropdown with org switcher inside */}
           <div className="relative" ref={profileDropdownRef}>
@@ -286,17 +286,17 @@ const Header: React.FC = () => {
               className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg focus:outline-none"
               onClick={() => setProfileDropdownOpen(v => !v)}
             >
-              {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+              D
             </button>
             {profileDropdownOpen && (
               <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-[9999]">
                 {/* User profile section */}
                 <div className="px-6 pt-4 pb-3 flex flex-col items-center">
                   <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-xl mb-2">
-                    {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                    D
                   </div>
                   <div className="text-sm font-medium text-gray-900 text-center">
-                    {user?.email}
+                    Demo@lightboxtv.com
                   </div>
                 </div>
                 <div className="border-t border-gray-200" />

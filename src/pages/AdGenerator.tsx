@@ -53,16 +53,6 @@ type SourcePreview = {
   bullets: string[];
 };
 
-type CreativeBrief = {
-  productSummary: string;
-  keyBenefit: string;
-  targetAudience: string;
-  proofPoints: string[];
-  offer?: string;
-  primaryCTA: string;
-  claimsToAvoid?: string[];
-};
-
 type Concept = {
   id: string;
   hook: string;

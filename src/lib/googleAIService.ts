@@ -229,7 +229,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
     try {
       const result = await this.retryApiCall(async () => {
         return await this.model.generateContent(prompt);
-      });
+      }, 'URL analysis and brief generation');
 
       const response = await result.response;
       const text = response.text();
@@ -239,7 +239,14 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
     } catch (error) {
       console.error('Error analyzing URL and generating brief:', error);
       // Return a fallback brief
-      return this.createFallbackBrief({ summary: 'Content analysis failed', bullets: ['Key benefit 1', 'Key benefit 2'], brandColors: ['#02b3e5'], logoUrl: undefined, videoTheme: 'business' }, tone);
+      return this.createFallbackBrief({ 
+        title: 'Content Analysis Failed',
+        summary: 'Content analysis failed', 
+        bullets: ['Key benefit 1', 'Key benefit 2'], 
+        brandColors: ['#02b3e5'], 
+        logoUrl: undefined, 
+        videoTheme: 'business' 
+      }, tone);
     }
   }
 

@@ -1138,152 +1138,105 @@ const TVIntelligence: React.FC = () => {
   );
 
   const renderSpotDetails = () => (
-    <div className="grid grid-cols-[16rem_1fr] h-full">
-      {/* Left Sidebar */}
-      <div className="w-64">
-        <div className="bg-gray-50 rounded-l-sm border border-gray-200 border-r-0 h-full">
-          {/* Filters */}
-          <div className="px-3 py-2 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">Filters</h3>
+    <div className="flex items-center justify-center min-h-[600px] bg-gradient-to-br from-gray-50 to-white">
+      <div className="text-center max-w-2xl mx-auto px-6">
+        {/* Icon */}
+        <div className="mb-8">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-[#02b3e5] to-[#0288d1] rounded-full shadow-lg">
+            <Monitor className="w-12 h-12 text-white" />
           </div>
-          
-          <div className="px-3 py-2 border-b border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Network</label>
-            <select
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
-              value={legacyFilters.network}
-              onChange={(e) => setLegacyFilters(prev => ({ ...prev, network: e.target.value }))}
-            >
-              <option value="">All Networks</option>
-              {/* We'll populate this dynamically */}
-            </select>
-          </div>
-          
-          <div className="px-3 py-2 border-b border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Advertiser</label>
-            <select
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
-              value={legacyFilters.advertiser}
-              onChange={(e) => setLegacyFilters(prev => ({ ...prev, advertiser: e.target.value }))}
-            >
-              <option value="">All Advertisers</option>
-              {/* We'll populate this dynamically */}
-            </select>
-          </div>
-          
-          <div className="px-3 py-2 border-b border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Brand</label>
-            <select
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
-              value={legacyFilters.brand}
-              onChange={(e) => setLegacyFilters(prev => ({ ...prev, brand: e.target.value }))}
-            >
-              <option value="">All Brands</option>
-              {/* We'll populate this dynamically */}
-            </select>
-          </div>
-          
-          <div className="px-3 py-2 border-b border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Daypart</label>
-            <select
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
-              value={legacyFilters.daypart}
-              onChange={(e) => setLegacyFilters(prev => ({ ...prev, daypart: e.target.value }))}
-            >
-              <option value="">All Dayparts</option>
-              {/* We'll populate this dynamically */}
-            </select>
-          </div>
-          
-                    <div className="px-3 py-2 border-b border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
-            <select
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#02b3e5] focus:border-[#02b3e5] bg-white"
-              value={legacyFilters.city}
-              onChange={(e) => setLegacyFilters(prev => ({ ...prev, city: e.target.value }))}
-            >
-              <option value="">All Cities</option>
-              {/* We'll populate this dynamically */}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="bg-white border border-gray-200 rounded-r-sm min-w-0 max-w-6xl">
-        {/* Spots Table */}
-        <div className="px-4 py-3 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Spot Details</h3>
-            <div className="text-sm text-gray-500">
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading...
-              </div>
-              ) : (
-                `${spots.length.toLocaleString()} spots found`
-              )}
-          </div>
-        </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-[#02b3e5]" />
-        </div>
-        ) : (
-          <div className="h-96 overflow-auto border border-gray-200 rounded-md">
-            <div className="min-w-[1400px]">
-              <table className="w-full divide-y divide-gray-200 table-fixed">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Network</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Advertiser</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Brand</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Programme</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Daypart</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Duration</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">City</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Buy Type</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {spots.slice(0, 100).map((spot) => (
-                  <tr key={spot._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 w-32">
-                      {spot.network || '-'}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {spot.advertiser || '-'}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {spot.brand || '-'}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 w-48">
-                      <div className="truncate" title={spot.prior_title || '-'}>
-                        {spot.prior_title || '-'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {spot.daypart || '-'}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {spot.duration ? `${Math.round(spot.duration / 60)}s` : '-'}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {spot.city || '-'}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {spot.buy_type || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Main Heading */}
+        <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          TV Spot Analysis
+        </h2>
+        
+        {/* Subheading */}
+        <p className="text-xl text-gray-600 mb-8">
+          Coming Soon
+        </p>
+
+        {/* Description */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8">
+          <p className="text-gray-700 text-lg leading-relaxed mb-6">
+            We're building powerful TV spot analysis tools to give you deep insights into your advertising performance and competitive landscape.
+          </p>
+          
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-2 gap-6 text-left">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <BarChartIcon className="w-5 h-5 text-[#02b3e5] mr-2" />
+                Detailed Spot Analysis
+              </h3>
+              <ul className="space-y-2 text-gray-600">
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Individual spot performance metrics</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Creative effectiveness scoring</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Audience engagement analysis</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Time-slot optimization insights</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <TargetIcon className="w-5 h-5 text-[#02b3e5] mr-2" />
+                Competitor Analysis
+              </h3>
+              <ul className="space-y-2 text-gray-600">
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Competitive spot tracking</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Market share analysis</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Creative trend identification</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-[#02b3e5] rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Strategic positioning insights</span>
+                </li>
+              </ul>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Call to Action */}
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Want to be notified when this feature launches?
+          </p>
+          <button 
+            onClick={() => setShowAIChat(true)}
+            className="inline-flex items-center px-6 py-3 bg-[#02b3e5] text-white font-medium rounded-lg hover:bg-[#0288d1] transition-colors shadow-sm"
+          >
+            <UsersIcon className="w-5 h-5 mr-2" />
+            Contact Our Team
+          </button>
+        </div>
+
+        {/* Additional Info */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-sm text-gray-500">
+            This feature will integrate with our existing TV Intelligence platform to provide comprehensive spot-level insights and competitive intelligence.
+          </p>
+        </div>
       </div>
     </div>
   );

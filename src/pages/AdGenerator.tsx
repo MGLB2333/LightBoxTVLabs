@@ -30,8 +30,6 @@ import {
 } from 'lucide-react';
 import { useSetBanner } from '../components/layout/BannerContext';
 import { googleAIService, type IngestResult, type VideoGenerationRequest, type CreativeBrief } from '../lib/googleAIService';
-import { veoService } from '../lib/veoService';
-import VeoTest from '../components/VeoTest';
 
 // Types
 type AdSession = {
@@ -111,6 +109,7 @@ const AdGenerator: React.FC = () => {
     videoUrl?: string;
     progress?: number;
   } | null>(null);
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const setBanner = useSetBanner();
@@ -232,65 +231,8 @@ Create a compelling video that drives action and clearly communicates the value 
   const handleGenerate = async () => {
     if (!inputValue.trim()) return;
     
-    // Validate URL format if URL type is selected
-    if (inputType === 'url' && !inputValue.startsWith('http')) {
-      setError('Please enter a valid URL starting with http:// or https://');
-      return;
-    }
-    
-    setIsGenerating(true);
-    setGenerationProgress(0);
-    setCurrentVideo(null);
-    setGeneratedVideos([]);
-    setError(null);
-    setShowBriefPopup(false);
-    setGeneratedBrief(null);
-    
-    try {
-      // Use the selected input type
-      if (inputType === 'url') {
-        // Use URL context tool for URL analysis
-        setGenerationProgress(20);
-        console.log('Analyzing URL with context tool:', inputValue);
-        const brief = await googleAIService.analyzeUrlAndGenerateBrief(inputValue, 'performance');
-        console.log('Generated brief from URL:', brief);
-        
-        setGenerationProgress(100);
-        setGeneratedBrief(brief);
-        setShowBriefPopup(true);
-        setIsGenerating(false);
-      } else {
-        // Use text analysis for non-URL input
-        setGenerationProgress(20);
-        console.log('Analyzing text content:', inputValue);
-        const ingestResult = await googleAIService.ingestContent(inputValue, 'text');
-        console.log('Content analysis result:', ingestResult);
-        
-        setGenerationProgress(40);
-        const brief = await googleAIService.generateCreativeBrief(ingestResult, 'performance');
-        console.log('Generated brief:', brief);
-        
-        setGenerationProgress(100);
-        setGeneratedBrief(brief);
-        setShowBriefPopup(true);
-        setIsGenerating(false);
-      }
-      
-    } catch (error: any) {
-      console.error('Error generating brief:', error);
-      setIsGenerating(false);
-      setGenerationProgress(0);
-      
-      // Set user-friendly error message
-      if (error.message?.includes('overloaded') || error.message?.includes('503')) {
-        setError('The AI service is currently busy. Please try again in a few moments.');
-      } else if (error.message?.includes('Failed to analyze content')) {
-        setError('Unable to analyze your input. Please try a different URL or description.');
-      } else {
-        setError('Failed to generate ad brief. Please try again.');
-      }
-      
-    }
+    // Show restriction modal instead of generating
+    setShowRestrictionModal(true);
   };
 
   const handleFileUpload = (file: File) => {
@@ -588,15 +530,13 @@ Create a compelling video that drives action and clearly communicates the value 
         
         {showAdvanced && (
           <div className="px-6 pb-6 space-y-6">
-            <AdvancedSections />
+            <div className="text-center text-gray-500 py-8">
+              <p>Advanced settings coming soon...</p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Veo Test Component */}
-      <div className="fixed top-4 right-4 z-50">
-        <VeoTest />
-      </div>
 
       {/* Video Generation Status */}
       {videoGenerationJob && (
@@ -711,202 +651,48 @@ Create a compelling video that drives action and clearly communicates the value 
                       <Video className="w-4 h-4" />
                       Generate Video with Veo 2
                     </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-
-// Advanced Sections Component
-const AdvancedSections: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<'brief' | 'scripts' | 'assets' | 'review'>('brief');
-
-  return (
-    <div className="space-y-6">
-      {/* Section Tabs */}
-      <div className="flex border-b border-gray-200">
-        {[
-          { id: 'brief', label: 'Edit Brief', icon: FileText },
-          { id: 'scripts', label: 'Scripts & Storyboard', icon: Edit },
-          { id: 'assets', label: 'Assets', icon: Image },
-          { id: 'review', label: 'Review & Export', icon: Download }
-        ].map(section => (
-          <button
-            key={section.id}
-            onClick={() => setActiveSection(section.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 ${
-              activeSection === section.id
-                ? 'border-[#02b3e5] text-[#02b3e5]'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <section.icon className="w-4 h-4" />
-            {section.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Section Content */}
-      {activeSection === 'brief' && (
-        <div className="space-y-4">
-          <h4 className="font-medium text-gray-900">Creative Brief Editor</h4>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-4">
-              Edit the AI-generated creative brief to refine your video ad. Changes will be applied to future generations.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Product Summary</label>
-                <textarea
-                  placeholder="Describe your product or service..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02b3e5] focus:border-[#02b3e5]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Key Benefit</label>
-                <input
-                  type="text"
-                  placeholder="Main value proposition..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02b3e5] focus:border-[#02b3e5]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
-                <input
-                  type="text"
-                  placeholder="Who is this for?"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02b3e5] focus:border-[#02b3e5]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tone</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02b3e5] focus:border-[#02b3e5]">
-                  <option value="performance">Performance</option>
-                  <option value="premium">Premium</option>
-                  <option value="playful">Playful</option>
-                  <option value="informative">Informative</option>
-                </select>
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Primary CTA</label>
-              <input
-                type="text"
-                placeholder="Call to action..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#02b3e5] focus:border-[#02b3e5]"
-              />
-            </div>
-            <div className="mt-4 flex gap-3">
-              <button className="px-4 py-2 bg-[#02b3e5] text-white rounded-lg hover:bg-[#02b3e5]/90">
-                Save Changes
-              </button>
-              <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
-                Regenerate Brief
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeSection === 'scripts' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="font-medium text-gray-900">Generated Scripts</h4>
-            <button className="px-3 py-1 text-sm bg-[#02b3e5] text-white rounded-lg hover:bg-[#02b3e5]/90">
-              Generate more variants
+              )}
             </button>
           </div>
-          
-          <div className="space-y-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">6s Performance Script</p>
-                <div className="space-y-1">
-                  <p><span className="font-medium">0-2s:</span> Hook with product benefit</p>
-                  <p><span className="font-medium">2-4s:</span> Show product in action</p>
-                  <p><span className="font-medium">4-6s:</span> Call to action</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">8s Premium Script</p>
-                <div className="space-y-1">
-                  <p><span className="font-medium">0-2s:</span> Brand introduction</p>
-                  <p><span className="font-medium">2-5s:</span> Product showcase</p>
-                  <p><span className="font-medium">5-7s:</span> Social proof</p>
-                  <p><span className="font-medium">7-8s:</span> Elegant CTA</p>
-                </div>
-              </div>
-            </div>
+        </div>
+        
+        {/* Debug Info */}
+        <div className="mt-2 p-2 bg-yellow-100 text-xs">
+          Debug: showRestrictionModal = {showRestrictionModal.toString()}, inputValue = "{inputValue}"
+        </div>
           </div>
         </div>
       )}
 
-      {activeSection === 'assets' && (
-        <div className="space-y-4">
-          <h4 className="font-medium text-gray-900">Reference Assets</h4>
-          <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
-                <Image className="w-8 h-8 text-gray-400" />
+      {/* Restriction Modal */}
+      {showRestrictionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
-            ))}
-          </div>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p className="text-sm text-gray-600">Upload product images, logos, or end cards</p>
-          </div>
-        </div>
-      )}
-
-      {activeSection === 'review' && (
-        <div className="space-y-4">
-          <h4 className="font-medium text-gray-900">Generated Artifacts</h4>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Video className="w-5 h-5 text-gray-500" />
-                <span className="text-sm">video_9x16.mp4</span>
-              </div>
-              <button className="px-3 py-1 text-sm bg-[#02b3e5] text-white rounded hover:bg-[#02b3e5]/90">
-                Download
-              </button>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-gray-500" />
-                <span className="text-sm">captions.srt</span>
-              </div>
-              <button className="px-3 py-1 text-sm bg-[#02b3e5] text-white rounded hover:bg-[#02b3e5]/90">
-                Download
-              </button>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-gray-500" />
-                <span className="text-sm">creative_brief.json</span>
-              </div>
-              <button className="px-3 py-1 text-sm bg-[#02b3e5] text-white rounded hover:bg-[#02b3e5]/90">
-                Download
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Access Restricted
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                This feature is currently restricted. Please contact your LightBox TV representative for access to the AI Ad Generator.
+              </p>
+              <button
+                onClick={() => setShowRestrictionModal(false)}
+                className="w-full px-4 py-2 bg-[#02b3e5] text-white rounded-lg hover:bg-[#0288d1] transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
-          <button className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900">
-            Download All (.zip)
-          </button>
         </div>
       )}
 
     </div>
   );
 };
+
+
 
 export default AdGenerator;

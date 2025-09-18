@@ -29,22 +29,11 @@ import {
   X
 } from 'lucide-react';
 import { useSetBanner } from '../components/layout/BannerContext';
-import { googleAIService, type IngestResult, type VideoGenerationRequest } from '../lib/googleAIService';
+import { googleAIService, type IngestResult, type VideoGenerationRequest, type CreativeBrief } from '../lib/googleAIService';
 import { veoService } from '../lib/veoService';
 import VeoTest from '../components/VeoTest';
 
 // Types
-type CreativeBrief = {
-  productSummary: string;
-  keyBenefit: string;
-  targetAudience: string;
-  proofPoints: string[];
-  offer?: string;
-  primaryCTA: string;
-  claimsToAvoid: string[];
-  tone: 'performance' | 'premium' | 'playful' | 'informative';
-};
-
 type AdSession = {
   id: string;
   source: { type: 'url'|'upload'|'paragraph'; value: string; preview?: SourcePreview };

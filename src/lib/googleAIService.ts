@@ -26,7 +26,7 @@ export interface CreativeBrief {
   proofPoints: string[];
   offer?: string;
   primaryCTA: string;
-  claimsToAvoid?: string[];
+  claimsToAvoid: string[];
   tone: 'performance' | 'premium' | 'playful' | 'informative';
 }
 
@@ -228,10 +228,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
 
     try {
       const result = await this.retryApiCall(async () => {
-        return await this.model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          tools: [{ urlContext: {} }],
-        });
+        return await this.model.generateContent(prompt);
       });
 
       const response = await result.response;
@@ -242,7 +239,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
     } catch (error) {
       console.error('Error analyzing URL and generating brief:', error);
       // Return a fallback brief
-      return this.createFallbackBrief({ tone });
+      return this.createFallbackBrief({ summary: 'Content analysis failed', bullets: ['Key benefit 1', 'Key benefit 2'], brandColors: ['#02b3e5'], logoUrl: undefined, videoTheme: 'business' }, tone);
     }
   }
 
@@ -373,7 +370,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
       const { videoGenerationService } = await import('./videoGenerationService');
       
       // Add theme to the request
-      const videoRequest: VideoGenerationRequest = {
+      const videoRequest = {
         ...request,
         style: request.style || 'performance'
       };
@@ -501,7 +498,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
         'Key benefit 3'
       ],
       brandColors: ['#02b3e5'],
-      logoUrl: null,
+      logoUrl: undefined,
       videoTheme
     };
   }

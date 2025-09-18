@@ -93,8 +93,7 @@ const AdTagTester: React.FC = () => {
           url: inputValue,
           status: response.status,
           ms: 0,
-          ok: response.ok,
-          ts: Date.now()
+          ok: response.ok
         });
         
         addEvent('VAST fetched', `Content length: ${xmlContent.length} characters`);
@@ -291,8 +290,7 @@ const AdTagTester: React.FC = () => {
             url,
             status: 200,
             ms: Math.random() * 50 + 10,
-            ok: true,
-            ts: Date.now()
+            ok: true
           });
         }
       });

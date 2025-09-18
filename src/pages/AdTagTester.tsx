@@ -93,7 +93,8 @@ const AdTagTester: React.FC = () => {
           url: inputValue,
           status: response.status,
           ms: 0,
-          ok: response.ok
+          ok: response.ok,
+          ts: Date.now()
         });
         
         addEvent('VAST fetched', `Content length: ${xmlContent.length} characters`);
@@ -187,7 +188,8 @@ const AdTagTester: React.FC = () => {
         
         // Add error handling for HLS
         video.addEventListener('error', (e) => {
-          addEvent('HLS Error', `Native HLS not supported: ${e.target?.error?.message || 'Unknown error'}`);
+          const target = e.target as HTMLVideoElement;
+          addEvent('HLS Error', `Native HLS not supported: ${target.error?.message || 'Unknown error'}`);
           addEvent('HLS Fallback', 'HLS streams require a compatible player or browser');
         });
         
@@ -207,7 +209,7 @@ const AdTagTester: React.FC = () => {
       setupTrackingEvents(xmlContent);
     } catch (error) {
       console.error('Error waiting for video element:', error);
-      addEvent('VAST ad loaded', `Video element not available: ${error.message}`);
+      addEvent('VAST ad loaded', `Video element not available: ${(error as Error).message}`);
     }
   };
 
@@ -289,7 +291,8 @@ const AdTagTester: React.FC = () => {
             url,
             status: 200,
             ms: Math.random() * 50 + 10,
-            ok: true
+            ok: true,
+            ts: Date.now()
           });
         }
       });
@@ -434,7 +437,7 @@ const AdTagTester: React.FC = () => {
       }
     } catch (error) {
       console.error('Error parsing XML for media URL:', error);
-      addEvent('XML Parse Error', `Error: ${error.message}`);
+      addEvent('XML Parse Error', `Error: ${(error as Error).message}`);
       return null;
     }
   };
@@ -453,7 +456,7 @@ const AdTagTester: React.FC = () => {
     setEvents(prev => [...prev, newEvent]);
   };
 
-  const addRequest = (request: RequestLog) => {
+  const addRequest = (request: Omit<RequestLog, 'ts'>) => {
     const newRequest: RequestLog = {
       ts: new Date().toISOString(),
       ...request

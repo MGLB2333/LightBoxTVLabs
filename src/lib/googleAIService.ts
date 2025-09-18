@@ -132,7 +132,7 @@ class GoogleAIService {
           summary: text.substring(0, 200) + '...',
           bullets: ['Key benefit 1', 'Key benefit 2', 'Key benefit 3'],
           brandColors: ['#02b3e5'],
-          logoUrl: null,
+          logoUrl: undefined,
           videoTheme: 'business'
         };
       }
@@ -140,7 +140,7 @@ class GoogleAIService {
       console.error('Error ingesting content:', error);
       
       // Fallback mode when AI service is unavailable
-      if (error.message?.includes('overloaded') || error.message?.includes('503')) {
+      if ((error as Error).message?.includes('overloaded') || (error as Error).message?.includes('503')) {
         return this.createFallbackContent(input);
       }
       
@@ -229,7 +229,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
     try {
       const result = await this.retryApiCall(async () => {
         return await this.model.generateContent({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
           tools: [{ urlContext: {} }],
         });
       });
@@ -242,7 +242,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
     } catch (error) {
       console.error('Error analyzing URL and generating brief:', error);
       // Return a fallback brief
-      return this.createFallbackBrief(tone);
+      return this.createFallbackBrief({ tone });
     }
   }
 
@@ -341,7 +341,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
           keyBenefit: ingestResult.bullets[0] || 'Key benefit',
           targetAudience: 'General audience',
           proofPoints: ingestResult.bullets,
-          offer: null,
+          offer: undefined,
           primaryCTA: 'Learn More',
           claimsToAvoid: [],
           tone
@@ -351,7 +351,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
       console.error('Error generating creative brief:', error);
       
       // Fallback brief when AI service is unavailable
-      if (error.message?.includes('overloaded') || error.message?.includes('503')) {
+      if ((error as Error).message?.includes('overloaded') || (error as Error).message?.includes('503')) {
         return this.createFallbackBrief(ingestResult, tone);
       }
       
@@ -373,9 +373,9 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
       const { videoGenerationService } = await import('./videoGenerationService');
       
       // Add theme to the request
-      const videoRequest = {
+      const videoRequest: VideoGenerationRequest = {
         ...request,
-        theme: videoTheme
+        style: request.style || 'performance'
       };
       
       // Generate the video
@@ -515,7 +515,7 @@ Make the brief compelling and suitable for a short video ad (6-15 seconds).`;
       keyBenefit: ingestResult.bullets[0] || 'Key benefit',
       targetAudience: 'General audience',
       proofPoints: ingestResult.bullets,
-      offer: null,
+      offer: undefined,
       primaryCTA: 'Learn More',
       claimsToAvoid: [],
       tone: tone as any

@@ -7,10 +7,16 @@ import { magniteApiService, type MagniteAccount, type MagniteCampaign, type Magn
 const MagniteAPI: React.FC = () => {
   const navigate = useNavigate();
   
-  useSetBanner({
-    title: 'Magnite API',
-    subtitle: 'Reporting & Analytics from Magnite ClearLine platform'
-  });
+  const setBanner = useSetBanner();
+  
+  useEffect(() => {
+    setBanner(
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Magnite API</h1>
+        <p className="text-gray-600">Reporting & Analytics from Magnite ClearLine platform</p>
+      </div>
+    );
+  }, [setBanner]);
 
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
